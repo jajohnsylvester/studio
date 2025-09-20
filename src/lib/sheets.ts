@@ -13,13 +13,10 @@ const getAuth = () => {
     throw new Error('Google Sheets API credentials are not set in .env file.');
   }
 
-  // Sanitize the private key to handle various formatting issues from environment variables.
-  const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n');
-
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-      private_key: privateKey,
+      private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY,
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
