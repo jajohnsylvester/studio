@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { generateFinancialTips } from '@/ai/flows/generate-financial-tips';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { DashboardSummary } from '@/components/dashboard-summary';
@@ -26,7 +26,8 @@ import {
 import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
-import { initialBudgets, initialExpenses } from '@/lib/data';
+import { initialBudgets } from '@/lib/data';
+import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Lightbulb, Download } from 'lucide-react';
 import { getMonth, getYear, format } from 'date-fns';
@@ -48,8 +49,9 @@ const months = [
 ];
 
 const monthColors = [
-  '#f08080', '#f4978e', '#f8ad9d', '#fbc4ab', '#ffdab9', '#caffbf',
-  '#9bf6ff', '#a0c4ff', '#bdb2ff', '#e0b0ff', '#f9c6ff', '#ffc6f9'
+  'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
 ];
 
 const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
@@ -72,7 +74,8 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 }
 
 export default function DashboardPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [budgets] = useState<Budget[]>(initialBudgets);
   const [financialTips, setFinancialTips] = useState<string>('');
   const [isGeneratingTips, setIsGeneratingTips] = useState(false);
@@ -81,6 +84,26 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  
+  useEffect(() => {
+    async function loadExpenses() {
+      setIsLoading(true);
+      try {
+        const sheetExpenses = await getExpenses();
+        setExpenses(sheetExpenses);
+      } catch (error) {
+        console.error("Failed to load expenses", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to load data",
+            description: "Could not fetch expenses from Google Sheets. Make sure your environment variables are set correctly.",
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadExpenses();
+  }, [toast]);
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
@@ -90,23 +113,61 @@ export default function DashboardPage() {
     });
   }, [expenses, selectedMonth, selectedYear]);
 
-  const handleAddExpense = (newExpense: Expense) => {
-    setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
+  const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
+    try {
+      const newExpense = await addExpense(newExpenseData);
+      setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
+      toast({
+        title: 'Expense Added',
+        description: `"${newExpense.description}" was added.`,
+      });
+    } catch (error) {
+        console.error("Failed to add expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to add expense to Google Sheet.',
+        })
+    }
   };
 
-  const handleUpdateExpense = (updatedExpense: Expense) => {
-    setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
-    setEditingExpense(null);
+  const handleUpdateExpense = async (updatedExpense: Expense) => {
+    try {
+        await updateExpense(updatedExpense);
+        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        setEditingExpense(null);
+        toast({
+            title: 'Expense Updated',
+            description: `"${updatedExpense.description}" was updated.`,
+        });
+    } catch (error) {
+        console.error("Failed to update expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update expense in Google Sheet.',
+        })
+    }
   };
 
-  const handleDeleteExpense = () => {
+  const handleDeleteExpense = async () => {
     if (!deletingExpense) return;
-    setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
-    toast({
-        title: "Expense Deleted",
-        description: `"${deletingExpense.description}" was deleted.`,
-    });
-    setDeletingExpense(null);
+    try {
+        await deleteExpense(deletingExpense.id);
+        setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
+        toast({
+            title: "Expense Deleted",
+            description: `"${deletingExpense.description}" was deleted.`,
+        });
+        setDeletingExpense(null);
+    } catch(error) {
+        console.error("Failed to delete expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to delete expense from Google Sheet.',
+        })
+    }
   };
   
   const handleExport = () => {
@@ -233,6 +294,14 @@ export default function DashboardPage() {
       setIsGeneratingTips(false);
     }
   };
+  
+  if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -347,7 +416,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </Header>
+                  </CardHeader>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">

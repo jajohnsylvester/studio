@@ -58,14 +58,13 @@ const expenseFormSchema = z.object({
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
 
 type AddExpenseDialogProps = {
-  onAddExpense: (expense: Expense) => void;
+  onAddExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
 };
 
 export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-
+  
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
@@ -79,35 +78,30 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   async function onSubmit(data: ExpenseFormValues) {
     setIsSubmitting(true);
     try {
-      const newExpense: Expense = {
-        id: new Date().toISOString(),
+      const newExpenseData = {
         description: data.description,
         amount: data.amount,
         category: data.category,
         date: data.date.toISOString(),
       };
       
-      onAddExpense(newExpense);
-      toast({
-        title: 'Expense Added',
-        description: `"${data.description}" was added to ${data.category}.`,
-      });
+      await onAddExpense(newExpenseData);
       setOpen(false);
       form.reset();
     } catch (error) {
       console.error('Failed to add expense:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to add expense. Please try again.',
-      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+            form.reset();
+        }
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />

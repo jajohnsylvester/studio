@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Budget, Expense } from '@/lib/types';
-import { initialBudgets, initialExpenses } from '@/lib/data';
+import { initialBudgets } from '@/lib/data';
+import { getExpenses } from '@/lib/sheets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -16,6 +17,9 @@ import {
 import { Pie, PieChart, Cell } from 'recharts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+
 
 const CustomTooltipContent = (props: TooltipProps<ValueType, NameType>) => {
   const { active, payload, label } = props;
@@ -39,8 +43,31 @@ const CustomTooltipContent = (props: TooltipProps<ValueType, NameType>) => {
 }
 
 export default function ReportsPage() {
-  const [expenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [budgets] = useState<Budget[]>(initialBudgets);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadExpenses() {
+      setIsLoading(true);
+      try {
+        const sheetExpenses = await getExpenses();
+        setExpenses(sheetExpenses);
+      } catch (error) {
+        console.error("Failed to load expenses", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to load data",
+            description: "Could not fetch expenses from Google Sheets.",
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadExpenses();
+  }, [toast]);
+
 
   const spendingByCategory = useMemo(() => {
     return expenses.reduce((acc, expense) => {
@@ -80,8 +107,8 @@ export default function ReportsPage() {
   }, [budgets, spendingByCategory]);
   
   const barChartConfig: ChartConfig = {
-    budget: { label: "Budget", color: "hsl(142.1 76.2% 36.3%)" },
-    spent: { label: "Spent", color: "hsl(35.8 91.7% 55.5%)" },
+    budget: { label: "Budget", color: "hsl(var(--chart-1))" },
+    spent: { label: "Spent", color: "hsl(var(--chart-2))" },
   };
 
   const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
@@ -100,6 +127,14 @@ export default function ReportsPage() {
     }
     return null;
   }
+  
+  if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,7 +143,7 @@ export default function ReportsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Spending by Category</CardTitle>
-            <CardDescription>A breakdown of your expenses for the current period.</CardDescription>
+            <CardDescription>A breakdown of your expenses for all time.</CardDescription>
           </CardHeader>
           <CardContent>
             {pieChartData.length > 0 ? (
@@ -132,7 +167,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Budget vs. Spent</CardTitle>
             <CardDescription>How your spending compares to your budget limits.</CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
              {barChartData.length > 0 ? (
                 <ChartContainer config={barChartConfig} className="h-[350px] w-full">

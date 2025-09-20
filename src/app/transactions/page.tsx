@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getMonth, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import { ExpenseList } from '@/components/expense-list';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -26,8 +25,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { initialExpenses } from '@/lib/data';
+import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
@@ -36,12 +36,34 @@ const months = [
 const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
 
 export default function TransactionsPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
+  useEffect(() => {
+    async function loadExpenses() {
+      setIsLoading(true);
+      try {
+        const sheetExpenses = await getExpenses();
+        setExpenses(sheetExpenses);
+      } catch (error) {
+        console.error("Failed to load expenses", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to load data",
+            description: "Could not fetch expenses from Google Sheets.",
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadExpenses();
+  }, [toast]);
+
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
@@ -51,24 +73,70 @@ export default function TransactionsPage() {
     });
   }, [expenses, selectedMonth, selectedYear]);
 
-  const handleAddExpense = (newExpense: Expense) => {
-    setExpenses((prevExpenses) => [newExpense, ...prevExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
+    try {
+      const newExpense = await addExpense(newExpenseData);
+      setExpenses((prevExpenses) => [newExpense, ...prevExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      toast({
+        title: 'Expense Added',
+        description: `"${newExpense.description}" was added.`,
+      });
+    } catch (error) {
+        console.error("Failed to add expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to add expense to Google Sheet.',
+        })
+    }
   };
 
-  const handleUpdateExpense = (updatedExpense: Expense) => {
-    setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
-    setEditingExpense(null);
+  const handleUpdateExpense = async (updatedExpense: Expense) => {
+     try {
+        await updateExpense(updatedExpense);
+        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        setEditingExpense(null);
+        toast({
+            title: 'Expense Updated',
+            description: `"${updatedExpense.description}" was updated.`,
+        });
+    } catch (error) {
+        console.error("Failed to update expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update expense in Google Sheet.',
+        })
+    }
   };
 
-  const handleDeleteExpense = () => {
+  const handleDeleteExpense = async () => {
     if (!deletingExpense) return;
-    setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
-    toast({
-        title: "Expense Deleted",
-        description: `"${deletingExpense.description}" was deleted.`,
-    });
-    setDeletingExpense(null);
+    try {
+        await deleteExpense(deletingExpense.id);
+        setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
+        toast({
+            title: "Expense Deleted",
+            description: `"${deletingExpense.description}" was deleted.`,
+        });
+        setDeletingExpense(null);
+    } catch(error) {
+        console.error("Failed to delete expense", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to delete expense from Google Sheet.',
+        })
+    }
   };
+  
+  if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6">

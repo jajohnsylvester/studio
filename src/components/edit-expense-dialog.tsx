@@ -60,13 +60,12 @@ type EditExpenseDialogProps = {
   expense: Expense | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateExpense: (expense: Expense) => void;
+  onUpdateExpense: (expense: Expense) => Promise<void>;
 };
 
 export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }: EditExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-
+  
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
   });
@@ -96,19 +95,10 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
         date: data.date.toISOString(),
       };
       
-      onUpdateExpense(updatedExpense);
-      toast({
-        title: 'Expense Updated',
-        description: `"${data.description}" was updated.`,
-      });
+      await onUpdateExpense(updatedExpense);
       onClose();
     } catch (error) {
       console.error('Failed to update expense:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update expense. Please try again.',
-      });
     } finally {
       setIsSubmitting(false);
     }

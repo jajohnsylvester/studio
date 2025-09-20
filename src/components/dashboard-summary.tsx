@@ -15,7 +15,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Link href="/transactions">
+      <Link href="/budgets">
         <Card className="hover:bg-muted/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
@@ -41,7 +41,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
           </CardContent>
         </Card>
       </Link>
-      <Link href="/transactions">
+      <Link href="/budgets">
         <Card className="hover:bg-muted/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Remaining</CardTitle>

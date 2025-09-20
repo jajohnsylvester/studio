@@ -1,18 +1,42 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Budget, Expense } from '@/lib/types';
-import { initialBudgets, initialExpenses } from '@/lib/data';
+import { initialBudgets } from '@/lib/data';
+import { getExpenses } from '@/lib/sheets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getCategoryIcon } from '@/lib/utils.tsx';
 import { CATEGORIES } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Banknote } from 'lucide-react';
+import { Banknote, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function BudgetsPage() {
-  const [expenses] = useState<Expense[]>(initialExpenses);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadExpenses() {
+      setIsLoading(true);
+      try {
+        const sheetExpenses = await getExpenses();
+        setExpenses(sheetExpenses);
+      } catch (error) {
+        console.error("Failed to load expenses", error);
+        toast({
+            variant: "destructive",
+            title: "Failed to load data",
+            description: "Could not fetch expenses from Google Sheets.",
+        })
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadExpenses();
+  }, [toast]);
 
   const handleBudgetChange = (category: string, newLimit: number) => {
     const updatedBudgets = [...budgets];
@@ -33,6 +57,14 @@ export default function BudgetsPage() {
   }, {} as { [key: string]: number });
 
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+
+  if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col gap-6">
