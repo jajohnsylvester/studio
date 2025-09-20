@@ -12,11 +12,16 @@ import { useToast } from '@/hooks/use-toast';
 import { initialBudgets, initialExpenses } from '@/lib/data';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Lightbulb } from 'lucide-react';
-import { format, getMonth } from 'date-fns';
+import { getMonth } from 'date-fns';
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
   "July", "August", "September", "October", "November", "December"
+];
+
+const monthColors = [
+  '#f08080', '#f4978e', '#f8ad9d', '#fbc4ab', '#ffdab9', '#caffbf',
+  '#9bf6ff', '#a0c4ff', '#bdb2ff', '#e0b0ff', '#f9c6ff', '#ffc6f9'
 ];
 
 export default function DashboardPage() {
@@ -78,9 +83,15 @@ export default function DashboardPage() {
       </div>
 
       <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {months.map(month => (
-            <TabsTrigger key={month} value={month}>{month}</TabsTrigger>
+        <TabsList className="grid h-auto w-full grid-cols-2 flex-wrap sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {months.map((month, index) => (
+            <TabsTrigger 
+              key={month} 
+              value={month}
+              style={selectedMonth === month ? { backgroundColor: monthColors[index], color: '#111' } : {}}
+            >
+              {month}
+            </TabsTrigger>
           ))}
         </TabsList>
         {months.map(month => (
