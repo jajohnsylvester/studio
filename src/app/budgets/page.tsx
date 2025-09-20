@@ -58,12 +58,13 @@ export default function BudgetsPage() {
                     {getCategoryIcon(category, { className: 'h-6 w-6' })}
                     <span>{category}</span>
                   </div>
-                  <div className="w-28">
+                  <div className="relative w-28">
+                       <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
                        <Input
                           type="number"
                           value={limit}
                           onChange={(e) => handleBudgetChange(category, parseFloat(e.target.value) || 0)}
-                          className="h-8 text-right"
+                          className="h-8 pl-7 text-right"
                           aria-label={`Budget for ${category}`}
                        />
                   </div>

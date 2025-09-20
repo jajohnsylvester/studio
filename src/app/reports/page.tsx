@@ -13,7 +13,29 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart';
 import { Pie, PieChart, Cell } from 'recharts';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, TooltipProps } from 'recharts';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+
+const CustomTooltipContent = (props: TooltipProps<ValueType, NameType>) => {
+  const { active, payload, label } = props;
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col space-y-1">
+            <span className="text-[0.7rem] uppercase text-muted-foreground">{label}</span>
+            {payload.map((p, i) => (
+                <span key={i} className="font-bold" style={{ color: p.color }}>
+                  {p.name}: ₹{p.value?.toLocaleString()}
+                </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function ReportsPage() {
   const [expenses] = useState<Expense[]>(initialExpenses);
@@ -61,6 +83,23 @@ export default function ReportsPage() {
     spent: { label: "Spent", color: "hsl(var(--chart-1))" },
   };
 
+  const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
+    const { active, payload } = props;
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-1 gap-2">
+             <span className="font-bold" style={{ color: data.payload.fill }}>
+                  {data.name}: ₹{data.value?.toLocaleString()}
+             </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
@@ -74,7 +113,7 @@ export default function ReportsPage() {
             {pieChartData.length > 0 ? (
               <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[350px]">
                 <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent nameKey="value" />} />
+                  <ChartTooltip content={<CustomPieTooltip />} />
                   <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} >
                     {pieChartData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
@@ -100,7 +139,7 @@ export default function ReportsPage() {
                         <CartesianGrid vertical={false} />
                         <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-45} textAnchor="end" height={60} interval={0} tick={{fontSize: 12}} />
                         <YAxis tickFormatter={(value) => `₹${value}`} />
-                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartTooltip content={<CustomTooltipContent />} />
                         <ChartLegend />
                         <Bar dataKey="budget" fill="var(--color-budget)" radius={4} />
                         <Bar dataKey="spent" fill="var(--color-spent)" radius={4} />
