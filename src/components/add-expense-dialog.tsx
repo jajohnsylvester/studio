@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { categorizeExpense } from '@/ai/flows/categorize-expense';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,8 +23,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import type { Expense } from '@/lib/types';
+import { Expense, CATEGORIES } from '@/lib/types';
 import { Loader2, PlusCircle } from 'lucide-react';
 
 const expenseFormSchema = z.object({
@@ -35,6 +41,7 @@ const expenseFormSchema = z.object({
   amount: z.coerce.number().positive({
     message: 'Amount must be a positive number.',
   }),
+  category: z.string().min(1, { message: 'Please select a category.' }),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
@@ -53,25 +60,23 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     defaultValues: {
       description: '',
       amount: undefined,
+      category: '',
     },
   });
 
   async function onSubmit(data: ExpenseFormValues) {
     setIsSubmitting(true);
     try {
-      const { category } = await categorizeExpense({ description: data.description });
-      
       const newExpense: Expense = {
         id: new Date().toISOString(),
         ...data,
-        category: category || 'Other',
         date: new Date().toISOString(),
       };
       
       onAddExpense(newExpense);
       toast({
         title: 'Expense Added',
-        description: `"${data.description}" was categorized as ${category}.`,
+        description: `"${data.description}" was added to ${data.category}.`,
       });
       setOpen(false);
       form.reset();
@@ -80,7 +85,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to categorize or add expense. Please try again.',
+        description: 'Failed to add expense. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -99,7 +104,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
         <DialogHeader>
           <DialogTitle>Add New Expense</DialogTitle>
           <DialogDescription>
-            Enter the details of your expense. The category will be automatically assigned.
+            Enter the details of your expense and select a category.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -129,6 +134,30 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                       <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
