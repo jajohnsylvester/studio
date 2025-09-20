@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -51,10 +52,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     isActive={pathname === item.href}
                     tooltip={item.label}
                   >
-                    <>
+                    <span className="flex w-full items-center gap-2">
                       <item.icon />
                       <span>{item.label}</span>
-                    </>
+                    </span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
