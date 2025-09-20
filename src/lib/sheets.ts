@@ -8,8 +8,8 @@ import { format } from 'date-fns';
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
 
 const getAuth = () => {
-  if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
-    throw new Error('Google Sheets API credentials are not set in .env file.');
+  if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY || !process.env.GOOGLE_SHEETS_SHEET_ID) {
+    throw new Error('Google Sheets API credentials or Sheet ID are not set in .env file.');
   }
 
   const auth = new google.auth.GoogleAuth({
@@ -165,6 +165,17 @@ export async function deleteExpense(id: string): Promise<void> {
   
   const { rowIndex } = found;
 
+  const response = await sheets.spreadsheets.get({
+    spreadsheetId: SHEET_ID,
+  });
+  const firstSheet = response.data.sheets?.[0];
+  const sheetId = firstSheet?.properties?.sheetId;
+  
+  if (sheetId === undefined) {
+    throw new Error("Could not find sheet ID to delete row.");
+  }
+
+
   await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SHEET_ID,
       requestBody: {
@@ -172,7 +183,7 @@ export async function deleteExpense(id: string): Promise<void> {
               {
                   deleteDimension: {
                       range: {
-                          sheetId: 0, // Assuming first sheet
+                          sheetId: sheetId, 
                           dimension: 'ROWS',
                           startIndex: rowIndex - 1,
                           endIndex: rowIndex,

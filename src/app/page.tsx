@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -296,11 +297,11 @@ export default function DashboardPage() {
   };
   
   if (isLoading) {
-      return (
-          <div className="flex justify-center items-center h-screen">
-              <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          </div>
-      );
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
@@ -416,7 +417,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </CardHeader>
+                  </Header>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">

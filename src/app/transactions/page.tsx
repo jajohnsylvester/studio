@@ -33,7 +33,7 @@ const months = [
   "January", "February", "March", "April", "May", "June", 
   "July", "August", "September", "October", "November", "December"
 ];
-const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
+const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + 1);
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
