@@ -30,6 +30,17 @@ import { initialBudgets, initialExpenses } from '@/lib/data';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Lightbulb } from 'lucide-react';
 import { getMonth, getYear } from 'date-fns';
+import { EditExpenseDialog } from '@/components/edit-expense-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
@@ -68,6 +79,8 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
@@ -79,6 +92,21 @@ export default function DashboardPage() {
 
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
+  };
+
+  const handleUpdateExpense = (updatedExpense: Expense) => {
+    setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+    setEditingExpense(null);
+  };
+
+  const handleDeleteExpense = () => {
+    if (!deletingExpense) return;
+    setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
+    toast({
+        title: "Expense Deleted",
+        description: `"${deletingExpense.description}" was deleted.`,
+    });
+    setDeletingExpense(null);
   };
 
   const spendingByCategory = useMemo(() => {
@@ -211,7 +239,11 @@ export default function DashboardPage() {
                   <CardDescription>A list of your most recent expenses for {month} {selectedYear}.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ExpenseList expenses={filteredExpenses.slice(0, 5)} />
+                  <ExpenseList 
+                    expenses={filteredExpenses.slice(0, 5)} 
+                    onEdit={(expense) => setEditingExpense(expense)}
+                    onDelete={(expense) => setDeletingExpense(expense)}
+                  />
                 </CardContent>
               </Card>
 
@@ -293,6 +325,27 @@ export default function DashboardPage() {
           </TabsContent>
         ))}
       </Tabs>
+      <EditExpenseDialog 
+        expense={editingExpense} 
+        isOpen={!!editingExpense} 
+        onClose={() => setEditingExpense(null)}
+        onUpdateExpense={handleUpdateExpense}
+      />
+      <AlertDialog open={!!deletingExpense} onOpenChange={() => setDeletingExpense(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the expense
+                "{deletingExpense?.description}".
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExpense}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -2,8 +2,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Expense } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils.tsx';
 import { format } from 'date-fns';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Button } from './ui/button';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
-export function ExpenseList({ expenses }: { expenses: Expense[] }) {
+type ExpenseListProps = {
+    expenses: Expense[];
+    onEdit: (expense: Expense) => void;
+    onDelete: (expense: Expense) => void;
+};
+
+export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
   if (expenses.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">No expenses recorded yet.</p>;
   }
@@ -17,6 +26,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="hidden md:table-cell text-right">Date</TableHead>
+            <TableHead className="w-12 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -34,6 +44,23 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
               </TableCell>
               <TableCell className="hidden md:table-cell text-right">
                 {format(new Date(expense.date), 'PP')}
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit(expense)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDelete(expense)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
