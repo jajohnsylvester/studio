@@ -1,3 +1,4 @@
+
 'use server';
 
 import { google } from 'googleapis';
@@ -12,10 +13,13 @@ const getAuth = () => {
     throw new Error('Google Sheets API credentials are not set in .env file.');
   }
 
+  // Sanitize the private key to handle various formatting issues from environment variables.
+  const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n');
+
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      private_key: privateKey,
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
@@ -64,6 +68,7 @@ export async function getExpenses(): Promise<Expense[]> {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error('Error fetching expenses from Google Sheets:', error);
+    // Return empty array on error to prevent app crash, error is logged for debugging.
     return [];
   }
 }
