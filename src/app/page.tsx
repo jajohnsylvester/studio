@@ -96,6 +96,31 @@ export default function DashboardPage() {
     });
     return config;
   }, [pieChartData]);
+  
+  const totalSpent = useMemo(() => {
+    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [filteredExpenses]);
+
+  const totalBudget = useMemo(() => {
+    return budgets.reduce((sum, budget) => sum + budget.limit, 0);
+  }, [budgets]);
+
+  const budgetChartData = useMemo(() => {
+    const remaining = totalBudget > totalSpent ? totalBudget - totalSpent : 0;
+    const spent = totalSpent;
+    
+    if (totalBudget <= 0) return [];
+
+    return [
+      { name: 'Spent', value: spent, fill: 'hsl(var(--chart-2))' },
+      { name: 'Remaining', value: remaining, fill: 'hsl(var(--chart-1))' },
+    ].filter(d => d.value > 0);
+  }, [totalBudget, totalSpent]);
+
+  const budgetChartConfig: ChartConfig = {
+    Spent: { label: 'Spent', color: 'hsl(var(--chart-2))' },
+    Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
+  };
 
   const handleGetFinancialTips = async () => {
     setIsGeneratingTips(true);
@@ -216,6 +241,29 @@ export default function DashboardPage() {
                         )}
                     </CardContent>
                 </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Budget Overview</CardTitle>
+                    <CardDescription>Your total spending relative to your total budget for {month}.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {budgetChartData.length > 0 ? (
+                      <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
+                        <PieChart>
+                          <ChartTooltip content={<CustomPieTooltip />} />
+                          <Pie data={budgetChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={120}>
+                            {budgetChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
+                        </PieChart>
+                      </ChartContainer>
+                    ) : (
+                      <div className="flex h-[350px] items-center justify-center text-muted-foreground">No budget data available.</div>
+                    )}
+                  </CardContent>
+                </Card>
             </div>
           </TabsContent>
         ))}
@@ -223,3 +271,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
