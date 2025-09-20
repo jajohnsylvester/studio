@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -79,8 +80,8 @@ export default function ReportsPage() {
   }, [budgets, spendingByCategory]);
   
   const barChartConfig: ChartConfig = {
-    budget: { label: "Budget", color: "hsl(var(--chart-2))" },
-    spent: { label: "Spent", color: "hsl(var(--chart-1))" },
+    budget: { label: "Budget", color: "hsl(142.1 76.2% 36.3%)" },
+    spent: { label: "Spent", color: "hsl(35.8 91.7% 55.5%)" },
   };
 
   const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
