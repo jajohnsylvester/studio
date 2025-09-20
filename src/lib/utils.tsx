@@ -13,6 +13,7 @@ import {
   User,
   MoreHorizontal,
   type LucideProps,
+  Receipt,
 } from 'lucide-react';
 import React from "react";
 
@@ -43,6 +44,8 @@ export const getCategoryIcon = (category: string, props?: LucideProps) => {
       return <Book {...iconProps} />;
     case 'Personal':
       return <User {...iconProps} />;
+    case 'Transactions':
+      return <Receipt {...iconProps} />;
     default:
       return <MoreHorizontal {...iconProps} />;
   }
