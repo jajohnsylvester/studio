@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -22,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { initialBudgets, initialExpenses } from '@/lib/data';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Lightbulb } from 'lucide-react';
-import { getMonth } from 'date-fns';
+import { getMonth, getYear } from 'date-fns';
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
@@ -33,6 +40,8 @@ const monthColors = [
   '#f08080', '#f4978e', '#f8ad9d', '#fbc4ab', '#ffdab9', '#caffbf',
   '#9bf6ff', '#a0c4ff', '#bdb2ff', '#e0b0ff', '#f9c6ff', '#ffc6f9'
 ];
+
+const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
     const { active, payload } = props;
@@ -58,11 +67,15 @@ export default function DashboardPage() {
   const [isGeneratingTips, setIsGeneratingTips] = useState(false);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
-    return expenses.filter(expense => getMonth(new Date(expense.date)) === monthIndex);
-  }, [expenses, selectedMonth]);
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return getMonth(expenseDate) === monthIndex && getYear(expenseDate) === selectedYear;
+    });
+  }, [expenses, selectedMonth, selectedYear]);
 
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
@@ -157,9 +170,21 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Dashboard
-        </h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-3xl font-bold tracking-tight font-headline">
+            Dashboard
+          </h1>
+          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Select year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <AddExpenseDialog onAddExpense={handleAddExpense} />
       </div>
 
@@ -183,7 +208,7 @@ export default function DashboardPage() {
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Recent Transactions</CardTitle>
-                  <CardDescription>A list of your most recent expenses for {month}.</CardDescription>
+                  <CardDescription>A list of your most recent expenses for {month} {selectedYear}.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ExpenseList expenses={filteredExpenses.slice(0, 5)} />
@@ -196,7 +221,7 @@ export default function DashboardPage() {
                     <Lightbulb className="h-5 w-5 text-yellow-400" />
                     AI Financial Tips
                   </CardTitle>
-                  <CardDescription>Get personalized advice based on your spending for {month}.</CardDescription>
+                  <CardDescription>Get personalized advice based on your spending for {month} {selectedYear}.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   {isGeneratingTips ? (
@@ -221,7 +246,7 @@ export default function DashboardPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Spending by Category</CardTitle>
-                        <CardDescription>A breakdown of your expenses for {month}.</CardDescription>
+                        <CardDescription>A breakdown of your expenses for {month} {selectedYear}.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {pieChartData.length > 0 ? (
@@ -244,7 +269,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
-                    <CardDescription>Your total spending relative to your total budget for {month}.</CardDescription>
+                    <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
@@ -271,5 +296,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
