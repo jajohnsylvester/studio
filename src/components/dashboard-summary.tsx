@@ -21,7 +21,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </CardContent>
       </Card>
@@ -32,7 +32,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </CardContent>
       </Card>
@@ -43,7 +43,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
         </CardHeader>
         <CardContent>
           <div className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-destructive' : ''}`}>
-            ${remainingBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{remainingBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </CardContent>
       </Card>

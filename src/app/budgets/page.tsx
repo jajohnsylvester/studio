@@ -70,11 +70,11 @@ export default function BudgetsPage() {
                 </div>
                 <Progress value={percentage} className={percentage > 90 ? '[&>div]:bg-destructive' : ''} />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>${spent.toFixed(2)} spent</span>
+                    <span>₹{spent.toFixed(2)} spent</span>
                     <span className={`${remaining < 0 ? 'font-bold text-destructive' : ''}`}>
                     {remaining >= 0
-                        ? `$${remaining.toFixed(2)} left`
-                        : `$${Math.abs(remaining).toFixed(2)} over`}
+                        ? `₹${remaining.toFixed(2)} left`
+                        : `₹${Math.abs(remaining).toFixed(2)} over`}
                     </span>
                 </div>
               </div>

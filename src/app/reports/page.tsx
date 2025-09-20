@@ -99,7 +99,7 @@ export default function ReportsPage() {
                     <BarChart data={barChartData} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
                         <CartesianGrid vertical={false} />
                         <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-45} textAnchor="end" height={60} interval={0} tick={{fontSize: 12}} />
-                        <YAxis tickFormatter={(value) => `$${value}`} />
+                        <YAxis tickFormatter={(value) => `₹${value}`} />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <ChartLegend />
                         <Bar dataKey="budget" fill="var(--color-budget)" radius={4} />

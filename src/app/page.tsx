@@ -28,7 +28,7 @@ export default function DashboardPage() {
     setFinancialTips('');
     try {
       const spendingData = expenses
-        .map((e) => `${e.category}: $${e.amount.toFixed(2)} - ${e.description}`)
+        .map((e) => `${e.category}: ₹${e.amount.toFixed(2)} - ${e.description}`)
         .join('\n');
 
       if (!spendingData) {

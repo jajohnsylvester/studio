@@ -30,7 +30,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
               </TableCell>
               <TableCell className="font-medium">{expense.description}</TableCell>
               <TableCell className="text-right">
-                -${expense.amount.toFixed(2)}
+                -₹{expense.amount.toFixed(2)}
               </TableCell>
               <TableCell className="hidden md:table-cell text-right">
                 {format(new Date(expense.date), 'PP')}
