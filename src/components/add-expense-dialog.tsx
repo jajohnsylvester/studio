@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -69,7 +70,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       description: '',
-      amount: undefined,
+      amount: '' as any,
       category: '',
       date: new Date(),
     },

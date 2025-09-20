@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -68,6 +69,11 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
   
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
+    defaultValues: {
+      description: '',
+      amount: '' as any,
+      category: '',
+    }
   });
   
   useEffect(() => {
