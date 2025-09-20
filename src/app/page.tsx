@@ -8,6 +8,16 @@ import { ExpenseList } from '@/components/expense-list';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartConfig,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
+import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
 import { initialBudgets, initialExpenses } from '@/lib/data';
 import type { Budget, Expense } from '@/lib/types';
@@ -23,6 +33,23 @@ const monthColors = [
   '#f08080', '#f4978e', '#f8ad9d', '#fbc4ab', '#ffdab9', '#caffbf',
   '#9bf6ff', '#a0c4ff', '#bdb2ff', '#e0b0ff', '#f9c6ff', '#ffc6f9'
 ];
+
+const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
+    const { active, payload } = props;
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-1 gap-2">
+             <span className="font-bold" style={{ color: data.payload.fill }}>
+                  {data.name}: ₹{data.value?.toLocaleString()}
+             </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+}
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
@@ -40,6 +67,35 @@ export default function DashboardPage() {
   const handleAddExpense = (newExpense: Expense) => {
     setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
   };
+
+  const spendingByCategory = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => {
+      const category = expense.category || "Other";
+      if (!acc[category]) {
+        acc[category] = 0;
+      }
+      acc[category] += expense.amount;
+      return acc;
+    }, {} as { [key: string]: number });
+  }, [filteredExpenses]);
+  
+  const pieChartData = useMemo(() => {
+    return Object.entries(spendingByCategory)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [spendingByCategory]);
+
+  const chartConfig: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    pieChartData.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name,
+        color: `hsl(var(--chart-${(index % 5) + 1}))`,
+      };
+    });
+    return config;
+  }, [pieChartData]);
 
   const handleGetFinancialTips = async () => {
     setIsGeneratingTips(true);
@@ -135,6 +191,31 @@ export default function DashboardPage() {
                   </Button>
                 </CardFooter>
               </Card>
+            </div>
+            <div className="grid gap-6 mt-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Spending by Category</CardTitle>
+                        <CardDescription>A breakdown of your expenses for {month}.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {pieChartData.length > 0 ? (
+                        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[350px]">
+                            <PieChart>
+                            <ChartTooltip content={<CustomPieTooltip />} />
+                            <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} >
+                                {pieChartData.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
+                                ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
+                            </PieChart>
+                        </ChartContainer>
+                        ) : (
+                            <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data available.</div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
           </TabsContent>
         ))}
