@@ -1,0 +1,117 @@
+"use client";
+
+import { useState, useMemo } from 'react';
+import type { Budget, Expense } from '@/lib/types';
+import { initialBudgets, initialExpenses } from '@/lib/data';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartConfig,
+  ChartLegend,
+  ChartLegendContent,
+} from '@/components/ui/chart';
+import { Pie, PieChart, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+
+export default function ReportsPage() {
+  const [expenses] = useState<Expense[]>(initialExpenses);
+  const [budgets] = useState<Budget[]>(initialBudgets);
+
+  const spendingByCategory = useMemo(() => {
+    return expenses.reduce((acc, expense) => {
+      const category = expense.category || "Other";
+      if (!acc[category]) {
+        acc[category] = 0;
+      }
+      acc[category] += expense.amount;
+      return acc;
+    }, {} as { [key: string]: number });
+  }, [expenses]);
+  
+  const pieChartData = useMemo(() => {
+    return Object.entries(spendingByCategory)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [spendingByCategory]);
+
+  const chartConfig: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    pieChartData.forEach((item, index) => {
+      config[item.name] = {
+        label: item.name,
+        color: `hsl(var(--chart-${(index % 5) + 1}))`,
+      };
+    });
+    return config;
+  }, [pieChartData]);
+
+  const barChartData = useMemo(() => {
+    return budgets.map(budget => ({
+      name: budget.category,
+      budget: budget.limit,
+      spent: spendingByCategory[budget.category] || 0,
+    })).filter(d => d.budget > 0 || d.spent > 0);
+  }, [budgets, spendingByCategory]);
+  
+  const barChartConfig: ChartConfig = {
+    budget: { label: "Budget", color: "hsl(var(--chart-2))" },
+    spent: { label: "Spent", color: "hsl(var(--chart-1))" },
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Spending by Category</CardTitle>
+            <CardDescription>A breakdown of your expenses for the current period.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pieChartData.length > 0 ? (
+              <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[350px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent nameKey="value" />} />
+                  <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} >
+                    {pieChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data available.</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Budget vs. Spent</CardTitle>
+            <CardDescription>How your spending compares to your budget limits.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             {barChartData.length > 0 ? (
+                <ChartContainer config={barChartConfig} className="h-[350px] w-full">
+                    <BarChart data={barChartData} margin={{ top: 20, right: 20, left: -10, bottom: 5 }}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} angle={-45} textAnchor="end" height={60} interval={0} tick={{fontSize: 12}} />
+                        <YAxis tickFormatter={(value) => `$${value}`} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartLegend />
+                        <Bar dataKey="budget" fill="var(--color-budget)" radius={4} />
+                        <Bar dataKey="spent" fill="var(--color-spent)" radius={4} />
+                    </BarChart>
+                </ChartContainer>
+             ) : (
+                <div className="flex h-[350px] items-center justify-center text-muted-foreground">No budget data available.</div>
+             )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
