@@ -78,9 +78,9 @@ export default function DashboardPage() {
       </div>
 
       <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12">
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {months.map(month => (
-            <TabsTrigger key={month} value={month}>{month.slice(0,3)}</TabsTrigger>
+            <TabsTrigger key={month} value={month}>{month}</TabsTrigger>
           ))}
         </TabsList>
         {months.map(month => (
