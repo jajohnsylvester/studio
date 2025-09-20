@@ -28,8 +28,8 @@ import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipCont
 import { useToast } from '@/hooks/use-toast';
 import { initialBudgets, initialExpenses } from '@/lib/data';
 import type { Budget, Expense } from '@/lib/types';
-import { Loader2, Lightbulb } from 'lucide-react';
-import { getMonth, getYear } from 'date-fns';
+import { Loader2, Lightbulb, Download } from 'lucide-react';
+import { getMonth, getYear, format } from 'date-fns';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import {
   AlertDialog,
@@ -107,6 +107,45 @@ export default function DashboardPage() {
         description: `"${deletingExpense.description}" was deleted.`,
     });
     setDeletingExpense(null);
+  };
+  
+  const handleExport = () => {
+    if (filteredExpenses.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No data to export",
+        description: "There are no expenses for the selected period.",
+      });
+      return;
+    }
+
+    const headers = ["ID", "Date", "Description", "Category", "Amount"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredExpenses.map(e => 
+        [
+          e.id, 
+          format(new Date(e.date), "yyyy-MM-dd"), 
+          `"${e.description.replace(/"/g, '""')}"`, // Handle quotes
+          e.category, 
+          e.amount
+        ].join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `expenses-${selectedYear}-${selectedMonth}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+        title: "Export Successful",
+        description: "Your expenses have been downloaded as a CSV file.",
+    });
   };
 
   const spendingByCategory = useMemo(() => {
@@ -213,7 +252,13 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
         </div>
-        <AddExpenseDialog onAddExpense={handleAddExpense} />
+        <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleExport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export to CSV
+            </Button>
+            <AddExpenseDialog onAddExpense={handleAddExpense} />
+        </div>
       </div>
 
       <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
@@ -302,7 +347,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </CardHeader>
+                  </Header>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
