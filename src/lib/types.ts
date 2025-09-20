@@ -12,16 +12,13 @@ export type Budget = {
 };
 
 export const CATEGORIES = [
-  'Food',
-  'Transportation',
-  'Entertainment',
-  'Utilities',
-  'Housing',
-  'Healthcare',
-  'Shopping',
-  'Travel',
-  'Education',
-  'Personal',
+  'Grocery',
+  'Fruits',
+  'Veggi',
+  'NonVeg',
+  'Snacks',
+  'Extra',
+  'Petrol',
   'Other',
 ] as const;
 

@@ -53,7 +53,7 @@ const categorizeExpensePrompt = ai.definePrompt({
 
   Expense Description: {{{description}}}
 
-  Possible categories: Food, Transportation, Entertainment, Utilities, Housing, Healthcare, Shopping, Travel, Education, Personal, Others
+  Possible categories: Grocery, Fruits, Veggi, NonVeg, Snacks, Extra, Petrol, Other
 
   Return only the category name.
   `,

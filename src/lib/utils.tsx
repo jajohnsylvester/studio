@@ -14,6 +14,12 @@ import {
   MoreHorizontal,
   type LucideProps,
   Receipt,
+  Apple,
+  Carrot,
+  Drumstick,
+  Cookie,
+  Plus,
+  Fuel
 } from 'lucide-react';
 import React from "react";
 
@@ -24,6 +30,20 @@ export function cn(...inputs: ClassValue[]) {
 export const getCategoryIcon = (category: string, props?: LucideProps) => {
   const iconProps = { className: 'h-4 w-4 text-muted-foreground', ...props };
   switch (category) {
+    case 'Grocery':
+      return <ShoppingBag {...iconProps} />;
+    case 'Fruits':
+      return <Apple {...iconProps} />;
+    case 'Veggi':
+      return <Carrot {...iconProps} />;
+    case 'NonVeg':
+      return <Drumstick {...iconProps} />;
+    case 'Snacks':
+      return <Cookie {...iconProps} />;
+    case 'Extra':
+      return <Plus {...iconProps} />;
+    case 'Petrol':
+      return <Fuel {...iconProps} />;
     case 'Food':
       return <Utensils {...iconProps} />;
     case 'Transportation':
