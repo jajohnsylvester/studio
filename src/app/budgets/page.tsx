@@ -38,6 +38,34 @@ export default function BudgetsPage() {
     loadExpenses();
   }, [toast]);
 
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+
+  const handleTotalBudgetChange = (newTotal: number) => {
+    const newTotalBudget = newTotal >= 0 ? newTotal : 0;
+    const currentTotalBudget = totalBudget;
+
+    if (currentTotalBudget === 0) {
+      // If current total is 0, distribute new budget equally
+      const equalShare = newTotalBudget / budgets.length;
+      const updatedBudgets = budgets.map(budget => ({
+        ...budget,
+        limit: equalShare,
+      }));
+      setBudgets(updatedBudgets);
+      return;
+    }
+
+    const updatedBudgets = budgets.map(budget => {
+      const proportion = budget.limit / currentTotalBudget;
+      return {
+        ...budget,
+        limit: newTotalBudget * proportion,
+      };
+    });
+    setBudgets(updatedBudgets);
+  };
+
+
   const handleBudgetChange = (category: string, newLimit: number) => {
     const updatedBudgets = [...budgets];
     const budgetIndex = updatedBudgets.findIndex(b => b.category === category);
@@ -56,7 +84,6 @@ export default function BudgetsPage() {
     return acc;
   }, {} as { [key: string]: number });
 
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
 
   if (isLoading) {
       return (
@@ -80,8 +107,15 @@ export default function BudgetsPage() {
             <Banknote className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-            <div className="text-2xl font-bold">
-            ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="relative text-2xl font-bold">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-1 text-2xl">₹</span>
+              <Input
+                type="number"
+                value={totalBudget.toFixed(2)}
+                onChange={(e) => handleTotalBudgetChange(parseFloat(e.target.value) || 0)}
+                className="h-auto w-full border-0 bg-transparent p-0 pl-7 text-2xl font-bold ring-offset-0 focus-visible:ring-0"
+                aria-label="Total budget"
+              />
             </div>
             <p className="text-xs text-muted-foreground">The total amount you've budgeted for the month.</p>
         </CardContent>
@@ -111,7 +145,7 @@ export default function BudgetsPage() {
                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
                        <Input
                           type="number"
-                          value={limit}
+                          value={limit.toFixed(2)}
                           onChange={(e) => handleBudgetChange(category, parseFloat(e.target.value) || 0)}
                           className="h-8 pl-7 text-right"
                           aria-label={`Budget for ${category}`}
