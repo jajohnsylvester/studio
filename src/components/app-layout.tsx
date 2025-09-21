@@ -39,7 +39,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Wallet className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold font-headline">Fiscal Flow</h1>
+            <h1 className="text-xl font-bold font-headline">PersonalExpenseTracker</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -68,7 +68,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger />
           <div className="flex items-center gap-2">
             <Wallet className="h-6 w-6 text-primary" />
-            <h1 className="text-lg font-bold font-headline">Fiscal Flow</h1>
+            <h1 className="text-lg font-bold font-headline">PersonalExpenseTracker</h1>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>

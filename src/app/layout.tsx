@@ -4,7 +4,7 @@ import { AppLayout } from '@/components/app-layout';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'Fiscal Flow',
+  title: 'PersonalExpenseTracker',
   description: 'A comprehensive budgeting and expense tracking app.',
 };
 

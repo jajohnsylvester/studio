@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -417,7 +416,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </Header>
+                  </CardHeader>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
