@@ -61,7 +61,7 @@ export default function BudgetsPage() {
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditTotalBudgetOpen, setEditTotalBudgetOpen] = useState(false);
 
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+  const totalBudget = budgets.filter(b => b.category !== 'Credit Card').reduce((sum, budget) => sum + budget.limit, 0);
 
   const addCategoryForm = useForm<AddCategoryFormValues>({
     resolver: zodResolver(addCategoryFormSchema),
@@ -107,24 +107,36 @@ export default function BudgetsPage() {
     const newTotalBudget = newTotal >= 0 ? newTotal : 0;
     const currentTotalBudget = totalBudget;
 
+    const budgetsToAdjust = budgets.filter(b => b.category !== 'Credit Card');
+    const creditCardBudget = budgets.find(b => b.category === 'Credit Card');
+
     if (currentTotalBudget === 0) {
-      const equalShare = budgets.length > 0 ? newTotalBudget / budgets.length : 0;
-      const updatedBudgets = budgets.map(budget => ({
+      const equalShare = budgetsToAdjust.length > 0 ? newTotalBudget / budgetsToAdjust.length : 0;
+      const updatedBudgets = budgetsToAdjust.map(budget => ({
         ...budget,
         limit: equalShare,
       }));
-      setBudgets(updatedBudgets);
+      if (creditCardBudget) {
+        setBudgets([...updatedBudgets, creditCardBudget]);
+      } else {
+        setBudgets(updatedBudgets);
+      }
       return;
     }
 
-    const updatedBudgets = budgets.map(budget => {
+    const updatedBudgets = budgetsToAdjust.map(budget => {
       const proportion = budget.limit / currentTotalBudget;
       return {
         ...budget,
         limit: newTotalBudget * proportion,
       };
     });
-    setBudgets(updatedBudgets);
+    
+    if (creditCardBudget) {
+      setBudgets([...updatedBudgets, creditCardBudget]);
+    } else {
+      setBudgets(updatedBudgets);
+    }
   };
 
   const onEditTotalBudgetSubmit = (data: EditTotalBudgetFormValues) => {
@@ -242,7 +254,7 @@ export default function BudgetsPage() {
                 </DialogContent>
               </Dialog>
             </div>
-            <p className="text-xs text-muted-foreground">The total amount you've budgeted for the month.</p>
+            <p className="text-xs text-muted-foreground">The total amount you've budgeted for the month (excluding Credit Card).</p>
         </CardContent>
       </Card>
       
@@ -330,6 +342,7 @@ export default function BudgetsPage() {
                           onChange={(e) => handleBudgetChange(category, parseFloat(e.target.value) || 0)}
                           className="h-8 pl-7 text-right"
                           aria-label={`Budget for ${category}`}
+                          disabled={category === 'Credit Card'}
                        />
                   </div>
                 </div>
