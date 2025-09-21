@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
@@ -33,6 +34,13 @@ const months = [
   "January", "February", "March", "April", "May", "June", 
   "July", "August", "September", "October", "November", "December"
 ];
+
+const monthColors = [
+    'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
+];
+
 const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + 1);
 
 export default function TransactionsPage() {
@@ -155,33 +163,37 @@ export default function TransactionsPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month} value={month}>{month}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <AddExpenseDialog onAddExpense={handleAddExpense} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Transactions</CardTitle>
-          <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ExpenseList 
-            expenses={filteredExpenses} 
-            onEdit={(expense) => setEditingExpense(expense)}
-            onDelete={(expense) => setDeletingExpense(expense)}
-          />
-        </CardContent>
-      </Card>
+      <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
+        <TabsList className="grid h-auto w-full grid-cols-2 flex-wrap sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {months.map((month, index) => (
+            <TabsTrigger
+                key={month}
+                value={month}
+                style={selectedMonth === month ? { backgroundColor: monthColors[index], color: '#111' } : {}}
+            >
+                {month}
+            </TabsTrigger>
+            ))}
+        </TabsList>
+
+        <Card className="mt-6">
+            <CardHeader>
+                <CardTitle>All Transactions</CardTitle>
+                <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ExpenseList 
+                expenses={filteredExpenses} 
+                onEdit={(expense) => setEditingExpense(expense)}
+                onDelete={(expense) => setDeletingExpense(expense)}
+                />
+            </CardContent>
+        </Card>
+      </Tabs>
 
       <EditExpenseDialog 
         expense={editingExpense} 
