@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
@@ -41,7 +41,7 @@ const monthColors = [
     'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
 ];
 
-const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + 1);
+const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
