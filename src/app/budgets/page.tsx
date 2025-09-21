@@ -1,22 +1,64 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import type { Budget, Expense } from '@/lib/types';
 import { initialBudgets } from '@/lib/data';
 import { getExpenses } from '@/lib/sheets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getCategoryIcon } from '@/lib/utils.tsx';
-import { CATEGORIES } from '@/lib/types';
 import { Input } from '@/components/ui/input';
-import { Banknote, Loader2 } from 'lucide-react';
+import { Banknote, Loader2, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const addCategoryFormSchema = z.object({
+    name: z.string().min(2, {
+        message: "Category name must be at least 2 characters.",
+    }),
+    limit: z.coerce.number().min(0, {
+        message: "Limit must be a positive number.",
+    }),
+});
+
+type AddCategoryFormValues = z.infer<typeof addCategoryFormSchema>;
 
 export default function BudgetsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const [categories, setCategories] = useState<string[]>(initialBudgets.map(b => b.category));
   const { toast } = useToast();
+  const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
+
+  const addCategoryForm = useForm<AddCategoryFormValues>({
+    resolver: zodResolver(addCategoryFormSchema),
+    defaultValues: {
+      name: '',
+      limit: '' as any,
+    },
+  });
 
   useEffect(() => {
     async function loadExpenses() {
@@ -45,8 +87,7 @@ export default function BudgetsPage() {
     const currentTotalBudget = totalBudget;
 
     if (currentTotalBudget === 0) {
-      // If current total is 0, distribute new budget equally
-      const equalShare = newTotalBudget / budgets.length;
+      const equalShare = budgets.length > 0 ? newTotalBudget / budgets.length : 0;
       const updatedBudgets = budgets.map(budget => ({
         ...budget,
         limit: equalShare,
@@ -77,6 +118,26 @@ export default function BudgetsPage() {
       updatedBudgets.push({ category, limit: value });
     }
     setBudgets(updatedBudgets);
+  };
+  
+  const handleAddCategory = (data: AddCategoryFormValues) => {
+    const { name, limit } = data;
+    if (categories.some(c => c.toLowerCase() === name.toLowerCase())) {
+        addCategoryForm.setError("name", {
+            type: "manual",
+            message: "Category already exists.",
+        });
+        return;
+    }
+
+    setCategories(prev => [...prev, name]);
+    setBudgets(prev => [...prev, { category: name, limit }]);
+    setAddCategoryOpen(false);
+    addCategoryForm.reset();
+    toast({
+        title: "Category Added",
+        description: `The category "${name}" with a budget of ₹${limit} has been added.`,
+    })
   };
 
   const spentPerCategory = expenses.reduce((acc, expense) => {
@@ -123,11 +184,67 @@ export default function BudgetsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Category Budgets</CardTitle>
-          <CardDescription>Manage your monthly spending limits for each category.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Category Budgets</CardTitle>
+              <CardDescription>Manage your monthly spending limits for each category.</CardDescription>
+            </div>
+            <Dialog open={isAddCategoryOpen} onOpenChange={setAddCategoryOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Category
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                 <DialogHeader>
+                    <DialogTitle>Add New Category</DialogTitle>
+                    <DialogDescription>
+                        Enter a name and budget for your new category.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...addCategoryForm}>
+                    <form onSubmit={addCategoryForm.handleSubmit(handleAddCategory)} className="space-y-4">
+                        <FormField
+                            control={addCategoryForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Category Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Subscriptions" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={addCategoryForm.control}
+                            name="limit"
+                             render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Budget Limit</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
+                                    <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <DialogFooter>
+                            <Button type="submit">Add Category</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {CATEGORIES.map(category => {
+          {categories.map(category => {
             const budget = budgets.find(b => b.category === category);
             const limit = budget?.limit ?? 0;
             const spent = spentPerCategory[category] ?? 0;

@@ -1,3 +1,4 @@
+
 export type Expense = {
   id: string;
   description: string;
@@ -11,7 +12,9 @@ export type Budget = {
   limit: number;
 };
 
-export const CATEGORIES = [
+// This list should be dynamically managed if categories can be added by the user.
+// For now, it's a starting point and should be updated if new static categories are added.
+export let CATEGORIES = [
   'Grocery',
   'Fruits',
   'Veggi',
@@ -20,6 +23,12 @@ export const CATEGORIES = [
   'Extra',
   'Petrol',
   'Other',
-] as const;
+] as string[];
+
+export function addCategory(newCategory: string) {
+    if (!CATEGORIES.includes(newCategory)) {
+        CATEGORIES.push(newCategory);
+    }
+}
 
 export type Category = (typeof CATEGORIES)[number];
