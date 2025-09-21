@@ -32,6 +32,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { addCategory as addGlobalCategory } from '@/lib/types';
 
 const addCategoryFormSchema = z.object({
     name: z.string().min(2, {
@@ -130,6 +131,7 @@ export default function BudgetsPage() {
         return;
     }
 
+    addGlobalCategory(name);
     setCategories(prev => [...prev, name]);
     setBudgets(prev => [...prev, { category: name, limit }]);
     setAddCategoryOpen(false);
