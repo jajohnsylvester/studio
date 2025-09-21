@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { generateFinancialTips } from '@/ai/flows/generate-financial-tips';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { DashboardSummary } from '@/components/dashboard-summary';
 import { ExpenseList } from '@/components/expense-list';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -29,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { initialBudgets } from '@/lib/data';
 import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
 import type { Budget, Expense } from '@/lib/types';
-import { Loader2, Lightbulb, Download } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { getMonth, getYear, format } from 'date-fns';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import {
@@ -77,8 +76,6 @@ export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [budgets] = useState<Budget[]>(initialBudgets);
-  const [financialTips, setFinancialTips] = useState<string>('');
-  const [isGeneratingTips, setIsGeneratingTips] = useState(false);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -263,38 +260,6 @@ export default function DashboardPage() {
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
 
-  const handleGetFinancialTips = async () => {
-    setIsGeneratingTips(true);
-    setFinancialTips('');
-    try {
-      const spendingData = filteredExpenses
-        .map((e) => `${e.category}: ₹${e.amount.toFixed(2)} - ${e.description}`)
-        .join('\n');
-
-      if (!spendingData) {
-        toast({
-            variant: "destructive",
-            title: "No spending data",
-            description: "Add some expenses for this month before generating tips.",
-        });
-        setIsGeneratingTips(false);
-        return;
-      }
-
-      const result = await generateFinancialTips({ spendingData });
-      setFinancialTips(result.financialTips);
-    } catch (error) {
-      console.error('Error generating financial tips:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to generate financial tips. Please try again.',
-      });
-    } finally {
-      setIsGeneratingTips(false);
-    }
-  };
-  
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -347,7 +312,7 @@ export default function DashboardPage() {
             <DashboardSummary expenses={filteredExpenses} budgets={budgets} />
             
             <div className="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
+              <Card className="lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Recent Transactions</CardTitle>
                   <CardDescription>A list of your most recent expenses for {month} {selectedYear}.</CardDescription>
@@ -361,32 +326,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              <Card className="flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Lightbulb className="h-5 w-5 text-yellow-400" />
-                    AI Financial Tips
-                  </CardTitle>
-                  <CardDescription>Get personalized advice based on your spending for {month} {selectedYear}.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  {isGeneratingTips ? (
-                    <div className="flex items-center justify-center h-full min-h-[100px]">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : financialTips ? (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{financialTips}</p>
-                  ) : (
-                      <p className="text-sm text-muted-foreground">Click the button to get your personalized financial tips.</p>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={handleGetFinancialTips} disabled={isGeneratingTips} className="w-full">
-                    {isGeneratingTips ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lightbulb className="mr-2 h-4 w-4" />}
-                    {isGeneratingTips ? 'Generating...' : 'Get My Tips'}
-                  </Button>
-                </CardFooter>
-              </Card>
             </div>
             <div className="grid gap-6 mt-6 md:grid-cols-2">
                 <Card>
