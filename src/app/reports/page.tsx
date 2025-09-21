@@ -42,6 +42,23 @@ const CustomTooltipContent = (props: TooltipProps<ValueType, NameType>) => {
   return null;
 }
 
+const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
+    const { active, payload } = props;
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-1 gap-2">
+             <span className="font-bold" style={{ color: data.payload.fill }}>
+                  {data.name}: ₹{data.value?.toLocaleString()}
+             </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,23 +127,6 @@ export default function ReportsPage() {
     budget: { label: "Budget", color: "hsl(var(--chart-1))" },
     spent: { label: "Spent", color: "hsl(var(--chart-2))" },
   };
-
-  const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
-    const { active, payload } = props;
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid grid-cols-1 gap-2">
-             <span className="font-bold" style={{ color: data.payload.fill }}>
-                  {data.name}: ₹{data.value?.toLocaleString()}
-             </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  }
   
   if (isLoading) {
       return (
