@@ -12,5 +12,6 @@ export const initialBudgets: Budget[] = [
     { "category": "Snacks", "limit": 200 },
     { "category": "Extra", "limit": 300 },
     { "category": "Petrol", "limit": 1000 },
+    { "category": "Credit Card", "limit": 0 },
     { "category": "Other", "limit": 100 }
 ];

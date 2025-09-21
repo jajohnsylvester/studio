@@ -40,7 +40,11 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               </TableCell>
               <TableCell className="font-medium">{expense.description}</TableCell>
               <TableCell className="text-right">
-                -₹{expense.amount.toFixed(2)}
+                 {expense.category === 'Credit Card' ? (
+                    <span className="text-destructive">-₹{expense.amount.toFixed(2)}</span>
+                ) : (
+                    <span>₹{expense.amount.toFixed(2)}</span>
+                )}
               </TableCell>
               <TableCell className="hidden md:table-cell text-right">
                 {format(new Date(expense.date), 'PP')}

@@ -22,6 +22,7 @@ export let CATEGORIES = [
   'Snacks',
   'Extra',
   'Petrol',
+  'Credit Card',
   'Other',
 ] as string[];
 
