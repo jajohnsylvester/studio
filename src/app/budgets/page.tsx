@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { getCategoryIcon } from '@/lib/utils.tsx';
 import { Input } from '@/components/ui/input';
-import { Banknote, Loader2, PlusCircle } from 'lucide-react';
+import { Banknote, Loader2, PlusCircle, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,14 @@ const addCategoryFormSchema = z.object({
     }),
 });
 
+const editTotalBudgetFormSchema = z.object({
+  totalBudget: z.coerce.number().min(0, {
+    message: "Total budget must be a positive number.",
+  }),
+});
+
 type AddCategoryFormValues = z.infer<typeof addCategoryFormSchema>;
+type EditTotalBudgetFormValues = z.infer<typeof editTotalBudgetFormSchema>;
 
 export default function BudgetsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -52,6 +59,9 @@ export default function BudgetsPage() {
   const [categories, setCategories] = useState<string[]>(initialBudgets.map(b => b.category));
   const { toast } = useToast();
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [isEditTotalBudgetOpen, setEditTotalBudgetOpen] = useState(false);
+
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
 
   const addCategoryForm = useForm<AddCategoryFormValues>({
     resolver: zodResolver(addCategoryFormSchema),
@@ -60,6 +70,18 @@ export default function BudgetsPage() {
       limit: '' as any,
     },
   });
+
+  const editTotalBudgetForm = useForm<EditTotalBudgetFormValues>({
+    resolver: zodResolver(editTotalBudgetFormSchema),
+    defaultValues: {
+      totalBudget: totalBudget,
+    },
+  });
+
+  useEffect(() => {
+    editTotalBudgetForm.reset({ totalBudget });
+  }, [totalBudget, editTotalBudgetForm]);
+
 
   useEffect(() => {
     async function loadExpenses() {
@@ -80,8 +102,6 @@ export default function BudgetsPage() {
     }
     loadExpenses();
   }, [toast]);
-
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
 
   const handleTotalBudgetChange = (newTotal: number) => {
     const newTotalBudget = newTotal >= 0 ? newTotal : 0;
@@ -105,6 +125,15 @@ export default function BudgetsPage() {
       };
     });
     setBudgets(updatedBudgets);
+  };
+
+  const onEditTotalBudgetSubmit = (data: EditTotalBudgetFormValues) => {
+    handleTotalBudgetChange(data.totalBudget);
+    setEditTotalBudgetOpen(false);
+    toast({
+      title: "Total Budget Updated",
+      description: `Your total budget has been set to ₹${data.totalBudget.toFixed(2)}.`,
+    })
   };
 
 
@@ -170,15 +199,48 @@ export default function BudgetsPage() {
             <Banknote className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-            <div className="relative text-2xl font-bold">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-1 text-2xl">₹</span>
-              <Input
-                type="number"
-                value={totalBudget.toFixed(2)}
-                onChange={(e) => handleTotalBudgetChange(parseFloat(e.target.value) || 0)}
-                className="h-auto w-full border-0 bg-transparent p-0 pl-7 text-2xl font-bold ring-offset-0 focus-visible:ring-0"
-                aria-label="Total budget"
-              />
+            <div className="flex items-center gap-4">
+              <div className="text-2xl font-bold">
+                ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <Dialog open={isEditTotalBudgetOpen} onOpenChange={setEditTotalBudgetOpen}>
+                <DialogTrigger asChild>
+                   <Button variant="outline" size="sm">
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Total Budget</DialogTitle>
+                    <DialogDescription>
+                      Set a new total budget. Category budgets will be adjusted proportionally.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...editTotalBudgetForm}>
+                    <form onSubmit={editTotalBudgetForm.handleSubmit(onEditTotalBudgetSubmit)} className="space-y-4">
+                      <FormField
+                        control={editTotalBudgetForm.control}
+                        name="totalBudget"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Total Budget</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
+                                <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <DialogFooter>
+                        <Button type="submit">Save Changes</Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
             <p className="text-xs text-muted-foreground">The total amount you've budgeted for the month.</p>
         </CardContent>
