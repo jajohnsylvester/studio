@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/chart';
 import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
     const { active, payload } = props;
@@ -39,6 +40,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,40 +74,51 @@ export default function ReportsPage() {
     }, {} as { [key: number]: Expense[] });
   }, [expenses]);
   
-  const yearlyReports = useMemo(() => {
-    return Object.entries(expensesByYear).map(([year, yearExpenses]) => {
-        const totalSpent = yearExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const availableYears = useMemo(() => {
+      return Object.keys(expensesByYear).map(Number).sort((a,b) => b-a);
+  }, [expensesByYear])
 
-        const spendingByCategory = yearExpenses.reduce((acc, expense) => {
-            const category = expense.category || "Other";
-            if (!acc[category]) {
-                acc[category] = 0;
-            }
-            acc[category] += expense.amount;
-            return acc;
-        }, {} as { [key: string]: number });
+  useEffect(() => {
+    if (availableYears.length > 0 && !selectedYear) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
 
-        const pieChartData = Object.entries(spendingByCategory)
-            .map(([name, value]) => ({ name, value }))
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value);
+  const selectedReport = useMemo(() => {
+    if (!selectedYear || !expensesByYear[selectedYear]) return null;
+    
+    const yearExpenses = expensesByYear[selectedYear];
+    const totalSpent = yearExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-        const chartConfig: ChartConfig = {};
-        pieChartData.forEach((item, index) => {
-            chartConfig[item.name] = {
-                label: item.name,
-                color: `hsl(var(--chart-${(index % 5) + 1}))`,
-            };
-        });
+    const spendingByCategory = yearExpenses.reduce((acc, expense) => {
+        const category = expense.category || "Other";
+        if (!acc[category]) {
+            acc[category] = 0;
+        }
+        acc[category] += expense.amount;
+        return acc;
+    }, {} as { [key: string]: number });
 
-        return {
-            year,
-            totalSpent,
-            pieChartData,
-            chartConfig
+    const pieChartData = Object.entries(spendingByCategory)
+        .map(([name, value]) => ({ name, value }))
+        .filter(item => item.value > 0)
+        .sort((a, b) => b.value - a.value);
+
+    const chartConfig: ChartConfig = {};
+    pieChartData.forEach((item, index) => {
+        chartConfig[item.name] = {
+            label: item.name,
+            color: `hsl(var(--chart-${(index % 5) + 1}))`,
         };
-    }).sort((a,b) => parseInt(b.year) - parseInt(a.year));
-  }, [expensesByYear]);
+    });
+
+    return {
+        year: selectedYear,
+        totalSpent,
+        pieChartData,
+        chartConfig
+    };
+  }, [selectedYear, expensesByYear]);
 
 
   if (isLoading) {
@@ -137,36 +150,64 @@ export default function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
+        {availableYears.length > 0 && (
+          <Select 
+            value={selectedYear?.toString()} 
+            onValueChange={(value) => setSelectedYear(parseInt(value))}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select a year" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map(year => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       
-      {yearlyReports.map(report => (
-          <Card key={report.year}>
+      {selectedReport ? (
+          <Card>
             <CardHeader>
-              <CardTitle>Yearly Report: {report.year}</CardTitle>
+              <CardTitle>Yearly Report: {selectedReport.year}</CardTitle>
               <CardDescription>
-                Total spent in {report.year}: 
-                <span className="font-bold text-foreground"> ₹{report.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                Total spent in {selectedReport.year}: 
+                <span className="font-bold text-foreground"> ₹{selectedReport.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {report.pieChartData.length > 0 ? (
-                    <ChartContainer config={report.chartConfig} className="mx-auto aspect-square max-h-[350px]">
+                {selectedReport.pieChartData.length > 0 ? (
+                    <ChartContainer config={selectedReport.chartConfig} className="mx-auto aspect-square max-h-[350px]">
                         <PieChart>
                             <ChartTooltip content={<CustomPieTooltip />} />
-                            <Pie data={report.pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120}>
-                                {report.pieChartData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={report.chartConfig[report.pieChartData[index].name]?.color} />
+                            <Pie data={selectedReport.pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120}>
+                                {selectedReport.pieChartData.map((_, index) => (
+                                <Cell key={`cell-${index}`} fill={selectedReport.chartConfig[selectedReport.pieChartData[index].name]?.color} />
                                 ))}
                             </Pie>
                             <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
                         </PieChart>
                     </ChartContainer>
                 ) : (
-                    <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data for {report.year}.</div>
+                    <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data for {selectedReport.year}.</div>
                 )}
             </CardContent>
           </Card>
-      ))}
+      ) : (
+        <Card>
+            <CardHeader>
+                <CardTitle>No Report Available</CardTitle>
+                <CardDescription>
+                    Please select a year to view the report.
+                </CardDescription>
+            </CardHeader>
+        </Card>
+      )}
 
     </div>
   );
