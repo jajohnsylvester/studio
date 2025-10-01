@@ -60,7 +60,7 @@ async function ensureSheetExists(sheets: any, sheetName: string, headers: string
 export async function getExpenses(): Promise<Expense[]> {
   try {
     const sheets = getSheets();
-    const range = 'Expenses';
+    const range = 'Transactions';
     await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount']);
     
     const response = await sheets.spreadsheets.values.get({
@@ -81,7 +81,7 @@ export async function getExpenses(): Promise<Expense[]> {
     const amountIndex = headers.indexOf('amount');
     
     if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex].includes(-1)) {
-        console.warn("One or more headers (id, date, description, category, amount) are missing in the Expenses Sheet. Assuming default order. Please add the header row for reliable data processing.");
+        console.warn("One or more headers (id, date, description, category, amount) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
     }
 
 
@@ -108,7 +108,7 @@ export async function getExpenses(): Promise<Expense[]> {
 
 export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
-  const range = 'Expenses';
+  const range = 'Transactions';
   const newId = new Date().toISOString() + Math.random();
   const newExpense: Expense = { ...expense, id: newId };
   const newRow = [newExpense.id, format(new Date(newExpense.date), 'yyyy-MM-dd'), newExpense.description, newExpense.category, newExpense.amount];
@@ -139,7 +139,7 @@ async function findRowById(sheets: any, rangeName: string, id: string): Promise<
 
 export async function updateExpense(expense: Expense): Promise<Expense> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, 'Expenses', expense.id);
+  const found = await findRowById(sheets, 'Transactions', expense.id);
 
   if (found === null) {
     throw new Error('Expense not found to update');
@@ -162,7 +162,7 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
 
 export async function deleteExpense(id: string): Promise<void> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, 'Expenses', id);
+  const found = await findRowById(sheets, 'Transactions', id);
 
   if (found === null) {
     throw new Error('Expense not found to delete');
@@ -170,7 +170,7 @@ export async function deleteExpense(id: string): Promise<void> {
   
   const { rowIndex } = found;
 
-  const sheetId = await getSheetIdByName(sheets, 'Expenses');
+  const sheetId = await getSheetIdByName(sheets, 'Transactions');
   
   if (sheetId === undefined) {
     throw new Error("Could not find sheet ID to delete row.");
