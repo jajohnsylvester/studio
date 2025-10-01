@@ -2,7 +2,7 @@
 'use server';
 
 import { google } from 'googleapis';
-import type { Expense, Budget } from './types';
+import type { Expense } from './types';
 import { format } from 'date-fns';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
@@ -202,93 +202,4 @@ export async function deleteExpense(id: string): Promise<void> {
           ]
       }
   })
-}
-
-export async function getBudgets(year: number, month: string): Promise<Budget[]> {
-  try {
-    const sheets = getSheets();
-    const range = 'Budgets';
-    await ensureSheetExists(sheets, range, ['year', 'month', 'category', 'limit']);
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: range,
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length <= 1) {
-      return [];
-    }
-    
-    const headers = rows[0];
-    const yearIndex = headers.indexOf('year');
-    const monthIndex = headers.indexOf('month');
-    const categoryIndex = headers.indexOf('category');
-    const limitIndex = headers.indexOf('limit');
-
-    return rows.slice(1).map((row): Budget | null => {
-        if (row.every(cell => !cell)) return null;
-        if (parseInt(row[yearIndex]) !== year || row[monthIndex] !== month) return null;
-
-        const limit = parseFloat(row[limitIndex]);
-        if (isNaN(limit)) return null;
-        return {
-            category: row[categoryIndex] || 'Other',
-            limit,
-        };
-    }).filter((b): b is Budget => b !== null);
-  } catch (error) {
-    console.error('Error fetching budgets from Google Sheets:', error);
-    return [];
-  }
-}
-
-export async function updateBudgets(year: number, month: string, budgets: Budget[]): Promise<void> {
-    const sheets = getSheets();
-    const range = 'Budgets';
-    await ensureSheetExists(sheets, range, ['year', 'month', 'category', 'limit']);
-
-    // 1. Read all data
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: range,
-    });
-    const allRows = response.data.values || [];
-    const headers = allRows[0] || ['year', 'month', 'category', 'limit'];
-    const dataRows = allRows.length > 1 ? allRows.slice(1) : [];
-
-    // 2. Filter out the rows for the month being updated
-    const otherMonthRows = dataRows.filter(row => row[0] !== year.toString() || row[1] !== month);
-
-    // 3. Create new rows for the current month's budgets
-    const newMonthRows = budgets.map(b => [year.toString(), month, b.category, b.limit.toString()]);
-
-    // 4. Combine and sort
-    const finalRows = [...otherMonthRows, ...newMonthRows];
-    finalRows.sort((a,b) => {
-        if (a[0] !== b[0]) return parseInt(a[0]) - parseInt(b[0]); // year
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        if (a[1] !== b[1]) return months.indexOf(a[1]) - months.indexOf(b[1]); // month
-        return a[2].localeCompare(b[2]); // category
-    });
-
-    // 5. Clear the sheet (below headers)
-    if (dataRows.length > 0) {
-        await sheets.spreadsheets.values.clear({
-            spreadsheetId: SHEET_ID,
-            range: `${range}!A2:D${allRows.length + 1}`,
-        });
-    }
-
-    // 6. Write the sorted data back
-    if (finalRows.length > 0) {
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: SHEET_ID,
-            range: `${range}!A2`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: {
-                values: finalRows,
-            },
-        });
-    }
 }

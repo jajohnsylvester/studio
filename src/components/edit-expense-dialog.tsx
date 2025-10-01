@@ -37,11 +37,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useToast } from '@/hooks/use-toast';
-import { Expense, CATEGORIES as initialCategories } from '@/lib/types';
+import { Expense, CATEGORIES } from '@/lib/types';
 import { Loader2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { initialBudgets } from '@/lib/data';
 import { Textarea } from './ui/textarea';
 
 const expenseFormSchema = z.object({
@@ -68,7 +66,6 @@ type EditExpenseDialogProps = {
 
 export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }: EditExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState(initialCategories);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -80,11 +77,6 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
   });
 
   useEffect(() => {
-    // In a real app, you might fetch categories from an API
-    const budgetCategories = initialBudgets.map(b => b.category);
-    const allCategories = [...new Set([...initialCategories, ...budgetCategories])];
-    setCategories(allCategories);
-
     if (expense) {
       form.reset({
         description: expense.description,
@@ -171,7 +163,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {CATEGORIES.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>

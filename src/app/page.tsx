@@ -26,8 +26,8 @@ import {
 import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
-import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
-import type { Budget, Expense } from '@/lib/types';
+import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
+import type { Expense } from '@/lib/types';
 import { Loader2, Download } from 'lucide-react';
 import { getMonth, getYear, format } from 'date-fns';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
@@ -74,7 +74,6 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
@@ -86,12 +85,8 @@ export default function DashboardPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [sheetExpenses, sheetBudgets] = await Promise.all([
-          getExpenses(),
-          getBudgets(selectedYear, selectedMonth)
-        ]);
+        const sheetExpenses = await getExpenses();
         setExpenses(sheetExpenses);
-        setBudgets(sheetBudgets);
       } catch (error) {
         console.error("Failed to load data", error);
         toast({
@@ -239,31 +234,6 @@ export default function DashboardPage() {
     return config;
   }, [pieChartData]);
   
-  const totalSpent = useMemo(() => {
-    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  }, [filteredExpenses]);
-
-  const totalBudget = useMemo(() => {
-    return budgets.filter(b => b.category !== 'Credit Card').reduce((sum, budget) => sum + budget.limit, 0);
-  }, [budgets]);
-
-  const budgetChartData = useMemo(() => {
-    const remaining = totalBudget > totalSpent ? totalBudget - totalSpent : 0;
-    const spent = totalSpent;
-    
-    if (totalBudget <= 0) return [];
-
-    return [
-      { name: 'Spent', value: spent, fill: 'hsl(var(--chart-2))' },
-      { name: 'Remaining', value: remaining, fill: 'hsl(var(--chart-1))' },
-    ].filter(d => d.value > 0);
-  }, [totalBudget, totalSpent]);
-
-  const budgetChartConfig: ChartConfig = {
-    Spent: { label: 'Spent', color: 'hsl(var(--chart-2))' },
-    Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
-  };
-
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -313,10 +283,10 @@ export default function DashboardPage() {
         </TabsList>
         {months.map(month => (
           <TabsContent key={month} value={month} className="mt-6">
-            <DashboardSummary expenses={filteredExpenses} budgets={budgets} />
+            <DashboardSummary expenses={filteredExpenses} />
             
             <div className="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="lg:col-span-3">
+              <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Recent Transactions</CardTitle>
                   <CardDescription>A list of your most recent expenses for {month} {selectedYear}.</CardDescription>
@@ -329,55 +299,29 @@ export default function DashboardPage() {
                   />
                 </CardContent>
               </Card>
-
-            </div>
-            <div className="grid gap-6 mt-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Spending by Category</CardTitle>
-                        <CardDescription>A breakdown of your expenses for {month} {selectedYear}.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {pieChartData.length > 0 ? (
-                        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[350px]">
-                            <PieChart>
-                            <ChartTooltip content={<CustomPieTooltip />} />
-                            <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} >
-                                {pieChartData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
-                                ))}
-                            </Pie>
-                            <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
-                            </PieChart>
-                        </ChartContainer>
-                        ) : (
-                            <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data available.</div>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card>
+              <Card>
                   <CardHeader>
-                    <CardTitle>Budget Overview</CardTitle>
-                    <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
+                      <CardTitle>Spending by Category</CardTitle>
+                      <CardDescription>A breakdown of your expenses for {month} {selectedYear}.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {budgetChartData.length > 0 ? (
-                      <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
-                        <PieChart>
+                      {pieChartData.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[350px]">
+                          <PieChart>
                           <ChartTooltip content={<CustomPieTooltip />} />
-                          <Pie data={budgetChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={120}>
-                            {budgetChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
+                          <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} >
+                              {pieChartData.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
+                              ))}
                           </Pie>
                           <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
-                        </PieChart>
+                          </PieChart>
                       </ChartContainer>
-                    ) : (
-                      <div className="flex h-[350px] items-center justify-center text-muted-foreground">No budget data available.</div>
-                    )}
+                      ) : (
+                          <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data available.</div>
+                      )}
                   </CardContent>
-                </Card>
+              </Card>
             </div>
           </TabsContent>
         ))}
@@ -406,5 +350,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

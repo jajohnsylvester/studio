@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,11 +38,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useToast } from '@/hooks/use-toast';
-import { Expense, CATEGORIES as initialCategories } from '@/lib/types';
+import { Expense, CATEGORIES } from '@/lib/types';
 import { Loader2, PlusCircle, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { initialBudgets } from '@/lib/data';
 import { Textarea } from './ui/textarea';
 
 const expenseFormSchema = z.object({
@@ -67,15 +65,6 @@ type AddExpenseDialogProps = {
 export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState(initialCategories);
-
-  useEffect(() => {
-    // In a real app, you might fetch categories from an API
-    // For now, we combine initial categories with budget categories
-    const budgetCategories = initialBudgets.map(b => b.category);
-    const allCategories = [...new Set([...initialCategories, ...budgetCategories])];
-    setCategories(allCategories);
-  }, []);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -171,7 +160,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {CATEGORIES.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>

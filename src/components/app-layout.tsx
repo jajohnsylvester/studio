@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
-  Target,
   PieChart,
   Wallet,
   Receipt,
@@ -29,7 +28,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/transactions', label: 'Transactions', icon: Receipt },
-    { href: '/budgets', label: 'Budgets', icon: Target },
     { href: '/reports', label: 'Reports', icon: PieChart },
   ];
 
