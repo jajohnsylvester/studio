@@ -39,7 +39,7 @@ const months = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
+const years = Array.from({ length: 2050 - 2024 + 1 }, (_, i) => 2024 + i);
 
 const addCategoryFormSchema = z.object({
     name: z.string().min(2, {

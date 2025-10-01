@@ -41,7 +41,7 @@ const monthColors = [
     'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
 ];
 
-const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
+const years = Array.from({ length: 2050 - 2024 + 1 }, (_, i) => 2024 + i);
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -219,3 +219,5 @@ export default function TransactionsPage() {
     </div>
   );
 }
+
+    

@@ -54,7 +54,7 @@ const monthColors = [
   'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
 ];
 
-const years = Array.from({ length: 2035 - 2024 + 1 }, (_, i) => 2024 + i);
+const years = Array.from({ length: 2050 - 2024 + 1 }, (_, i) => 2024 + i);
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
     const { active, payload } = props;
@@ -81,11 +81,13 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       try {
-        const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
+        const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets(selectedYear, selectedMonth)]);
         setExpenses(sheetExpenses);
         setBudgets(sheetBudgets.length > 0 ? sheetBudgets : initialBudgets);
       } catch (error) {
@@ -95,10 +97,12 @@ export default function DashboardPage() {
             title: "Failed to load data",
             description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
         })
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
-  }, [toast]);
+  }, [toast, selectedYear, selectedMonth]);
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
@@ -257,6 +261,14 @@ export default function DashboardPage() {
     Spent: { label: 'Spent', color: 'hsl(var(--chart-2))' },
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
