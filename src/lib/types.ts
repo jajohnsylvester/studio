@@ -33,5 +33,3 @@ export function addCategory(newCategory: string) {
 }
 
 export type Category = (typeof CATEGORIES)[number];
-
-    
