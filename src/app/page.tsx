@@ -26,7 +26,6 @@ import {
 import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
-import { initialBudgets } from '@/lib/data';
 import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Download } from 'lucide-react';
@@ -75,7 +74,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -89,7 +88,7 @@ export default function DashboardPage() {
       try {
         const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets(selectedYear, selectedMonth)]);
         setExpenses(sheetExpenses);
-        setBudgets(sheetBudgets.length > 0 ? sheetBudgets : initialBudgets);
+        setBudgets(sheetBudgets);
       } catch (error) {
         console.error("Failed to load data", error);
         toast({
@@ -357,7 +356,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </CardHeader>
+                  </Header>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
@@ -404,5 +403,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
