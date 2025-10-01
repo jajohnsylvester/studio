@@ -260,14 +260,14 @@ export default function DashboardPage() {
     Spent: { label: 'Spent', color: 'hsl(var(--chart-2))' },
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
-
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
+  
+    if (isLoading) {
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
+    }
 
   return (
     <div className="flex flex-col gap-6">
@@ -403,3 +403,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
