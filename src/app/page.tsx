@@ -265,11 +265,11 @@ export default function DashboardPage() {
   };
 
   if (isLoading) {
-      return (
-          <div className="flex justify-center items-center h-screen">
-              <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          </div>
-      );
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
