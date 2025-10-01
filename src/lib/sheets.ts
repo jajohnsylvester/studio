@@ -282,4 +282,3 @@ export async function updateBudgets(year: number, month: string, budgets: Budget
         });
     }
 }
-    
