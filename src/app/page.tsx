@@ -75,12 +75,12 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     async function loadData() {
@@ -263,13 +263,13 @@ export default function DashboardPage() {
     Spent: { label: 'Spent', color: 'hsl(var(--chart-2))' },
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
-  
+
   if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
+      return (
+          <div className="flex justify-center items-center h-screen">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      );
   }
 
   return (
