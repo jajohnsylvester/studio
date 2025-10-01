@@ -36,8 +36,10 @@ async function getSheetIdByName(sheets: any, sheetName: string): Promise<number 
 }
 
 async function ensureSheetExists(sheets: any, sheetName: string, headers: string[]) {
-    const sheetId = await getSheetIdByName(sheets, sheetName);
-    if (sheetId === undefined) {
+    const sheetInfo = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const sheetExists = sheetInfo.data.sheets.some((s: any) => s.properties.title === sheetName);
+
+    if (!sheetExists) {
         await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SHEET_ID,
             requestBody: {
@@ -123,22 +125,21 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
   return newExpense;
 }
 
-async function findRowById(sheets: any, id: string): Promise<{rowIndex: number, range: string} | null> {
-    const range = 'Expenses';
+async function findRowById(sheets: any, rangeName: string, id: string): Promise<{rowIndex: number, range: string} | null> {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: `${range}!A:A`, // Assuming 'id' is in column A
+      range: `${rangeName}!A:A`, // Assuming 'id' is in column A
     });
     const ids = response.data.values;
     if (!ids) return null;
     const rowIndex = ids.findIndex(row => row[0] === id);
-    return rowIndex !== -1 ? { rowIndex: rowIndex + 1, range } : null;
+    return rowIndex !== -1 ? { rowIndex: rowIndex + 1, range: rangeName } : null;
 }
 
 
 export async function updateExpense(expense: Expense): Promise<Expense> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, expense.id);
+  const found = await findRowById(sheets, 'Expenses', expense.id);
 
   if (found === null) {
     throw new Error('Expense not found to update');
@@ -161,7 +162,7 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
 
 export async function deleteExpense(id: string): Promise<void> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, id);
+  const found = await findRowById(sheets, 'Expenses', id);
 
   if (found === null) {
     throw new Error('Expense not found to delete');
@@ -195,11 +196,11 @@ export async function deleteExpense(id: string): Promise<void> {
   })
 }
 
-export async function getBudgets(): Promise<Budget[]> {
+export async function getBudgets(year: number, month: string): Promise<Budget[]> {
   try {
     const sheets = getSheets();
     const range = 'Budgets';
-    await ensureSheetExists(sheets, range, ['category', 'limit']);
+    await ensureSheetExists(sheets, range, ['year', 'month', 'category', 'limit']);
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
@@ -212,15 +213,19 @@ export async function getBudgets(): Promise<Budget[]> {
     }
     
     const headers = rows[0];
+    const yearIndex = headers.indexOf('year');
+    const monthIndex = headers.indexOf('month');
     const categoryIndex = headers.indexOf('category');
     const limitIndex = headers.indexOf('limit');
 
     return rows.slice(1).map((row): Budget | null => {
         if (row.every(cell => !cell)) return null;
-        const limit = parseFloat(row[limitIndex > -1 ? limitIndex : 1]);
+        if (parseInt(row[yearIndex]) !== year || row[monthIndex] !== month) return null;
+
+        const limit = parseFloat(row[limitIndex]);
         if (isNaN(limit)) return null;
         return {
-            category: row[categoryIndex > -1 ? categoryIndex : 0] || 'Other',
+            category: row[categoryIndex] || 'Other',
             limit,
         };
     }).filter((b): b is Budget => b !== null);
@@ -230,30 +235,51 @@ export async function getBudgets(): Promise<Budget[]> {
   }
 }
 
-export async function updateBudgets(budgets: Budget[]): Promise<void> {
+export async function updateBudgets(year: number, month: string, budgets: Budget[]): Promise<void> {
     const sheets = getSheets();
     const range = 'Budgets';
-    const sheetId = await getSheetIdByName(sheets, range);
-     if (sheetId === undefined) {
-        // This should not happen if getBudgets was called before
-        await ensureSheetExists(sheets, range, ['category', 'limit']);
-    }
+    await ensureSheetExists(sheets, range, ['year', 'month', 'category', 'limit']);
 
-    const values = budgets.map(b => [b.category, b.limit]);
+    // 1. Read all data
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: range,
+    });
+    const allRows = response.data.values || [];
+    const headers = allRows[0] || ['year', 'month', 'category', 'limit'];
+    const dataRows = allRows.length > 1 ? allRows.slice(1) : [];
 
-    // Clear existing data (but not headers)
+    // 2. Filter out the rows for the month being updated
+    const otherMonthRows = dataRows.filter(row => row[0] !== year.toString() || row[1] !== month);
+
+    // 3. Create new rows for the current month's budgets
+    const newMonthRows = budgets.map(b => [year.toString(), month, b.category, b.limit]);
+
+    // 4. Combine and sort
+    const finalRows = [...otherMonthRows, ...newMonthRows];
+    finalRows.sort((a,b) => {
+        if (a[0] !== b[0]) return parseInt(a[0]) - parseInt(b[0]); // year
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        if (a[1] !== b[1]) return months.indexOf(a[1]) - months.indexOf(b[1]); // month
+        return a[2].localeCompare(b[2]); // category
+    });
+
+    // 5. Clear the sheet (below headers)
     await sheets.spreadsheets.values.clear({
         spreadsheetId: SHEET_ID,
-        range: `${range}!A2:B`, 
+        range: `${range}!A2:D${dataRows.length + 1}`,
     });
 
-    // Write new data
-    await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID,
-        range: `${range}!A2`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-            values: values,
-        },
-    });
+    // 6. Write the sorted data back
+    if (finalRows.length > 0) {
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!A2`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: finalRows,
+            },
+        });
+    }
 }
+    
