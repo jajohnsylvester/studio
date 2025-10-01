@@ -351,6 +351,7 @@ export default function BudgetsPage() {
           </Card>
       )}
 
+      {budgets.length > 0 && (
       <>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -512,6 +513,7 @@ export default function BudgetsPage() {
             </CardContent>
         </Card>
       </>
+      )}
 
     </div>
   );

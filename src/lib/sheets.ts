@@ -268,7 +268,7 @@ export async function updateBudgets(year: number, month: string, budgets: Budget
     if (dataRows.length > 0) {
         await sheets.spreadsheets.values.clear({
             spreadsheetId: SHEET_ID,
-            range: `${range}!A2:D${dataRows.length + 1}`,
+            range: `${range}!A2:D${allRows.length + 1}`,
         });
     }
 
