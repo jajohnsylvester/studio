@@ -36,24 +36,31 @@ async function getSheetIdByName(sheets: any, sheetName: string): Promise<number 
 }
 
 async function ensureSheetExists(sheets: any, sheetName: string, headers: string[]) {
-    const sheetInfo = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-    const sheetExists = sheetInfo.data.sheets.some((s: any) => s.properties.title === sheetName);
+    try {
+        const sheetInfo = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+        const sheetExists = sheetInfo.data.sheets.some((s: any) => s.properties.title === sheetName);
 
-    if (!sheetExists) {
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId: SHEET_ID,
-            requestBody: {
-                requests: [{ addSheet: { properties: { title: sheetName } } }],
-            },
-        });
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: SHEET_ID,
-            range: `${sheetName}!A1`,
-            valueInputOption: 'RAW',
-            requestBody: {
-                values: [headers],
-            },
-        });
+        if (!sheetExists) {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: SHEET_ID,
+                requestBody: {
+                    requests: [{ addSheet: { properties: { title: sheetName } } }],
+                },
+            });
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: SHEET_ID,
+                range: `${sheetName}!A1`,
+                valueInputOption: 'RAW',
+                requestBody: {
+                    values: [headers],
+                },
+            });
+        }
+    } catch (error) {
+        // If the sheet ID is invalid, this will fail. We can't do much here.
+        // The user will see a toast notification on the frontend.
+        console.error(`Error ensuring sheet "${sheetName}" exists. This may be due to an invalid SHEET_ID.`, error);
+        throw error;
     }
 }
 
@@ -102,6 +109,7 @@ export async function getExpenses(): Promise<Expense[]> {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error('Error fetching expenses from Google Sheets:', error);
+    // Return empty array to prevent app crash if sheet is not accessible
     return [];
   }
 }

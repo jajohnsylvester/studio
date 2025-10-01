@@ -86,7 +86,10 @@ export default function DashboardPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets(selectedYear, selectedMonth)]);
+        const [sheetExpenses, sheetBudgets] = await Promise.all([
+          getExpenses(),
+          getBudgets(selectedYear, selectedMonth)
+        ]);
         setExpenses(sheetExpenses);
         setBudgets(sheetBudgets);
       } catch (error) {
@@ -356,7 +359,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </CardHeader>
+                  </Header>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
