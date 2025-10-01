@@ -112,8 +112,9 @@ export default function BudgetsPage() {
         if (sheetBudgets.length > 0) {
             effectiveBudgets = sheetBudgets;
         } else {
-             const lastMonthBudgets = await getBudgets(selectedYear, months[months.indexOf(selectedMonth) -1] || 'December');
-             effectiveBudgets = lastMonthBudgets.length > 0 ? lastMonthBudgets : [];
+             // If no budget for current month, we will show an option to copy from last month.
+             // We'll leave effectiveBudgets empty for now.
+             effectiveBudgets = [];
         }
         setBudgets(effectiveBudgets);
         
@@ -273,9 +274,10 @@ export default function BudgetsPage() {
                   Would you like to copy the budget from the most recent month as a starting point?
               </CardDescription>
               <Button className="mt-4" onClick={async () => {
-                   const lastMonthIndex = months.indexOf(selectedMonth) -1;
-                   const lastYear = lastMonthIndex < 0 ? selectedYear - 1 : selectedYear;
-                   const lastMonth = lastMonthIndex < 0 ? 'December' : months[lastMonthIndex];
+                   const currentMonthIndex = months.indexOf(selectedMonth);
+                   const lastMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
+                   const lastYear = currentMonthIndex > 0 ? selectedYear : selectedYear - 1;
+                   const lastMonth = months[lastMonthIndex];
                    
                    const lastBudgets = await getBudgets(lastYear, lastMonth);
                    if (lastBudgets.length > 0) {
@@ -283,7 +285,7 @@ export default function BudgetsPage() {
                        await updateBudgets(selectedYear, selectedMonth, lastBudgets);
                        toast({title: 'Budget copied', description: `Budget from ${lastMonth} ${lastYear} has been copied.`})
                    } else {
-                       toast({variant: 'destructive', title: 'No recent budget found'})
+                       toast({variant: 'destructive', title: 'No recent budget found', description: `Could not find a budget for ${lastMonth} ${lastYear}.`})
                    }
               }}>
                   Copy Last Month's Budget
@@ -455,3 +457,5 @@ export default function BudgetsPage() {
     </div>
   );
 }
+
+    
