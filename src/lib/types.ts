@@ -27,9 +27,11 @@ export let CATEGORIES = [
 ] as string[];
 
 export function addCategory(newCategory: string) {
-    if (!CATEGORIES.includes(newCategory)) {
+    if (!CATEGORIES.find(c => c.toLowerCase() === newCategory.toLowerCase())) {
         CATEGORIES.push(newCategory);
     }
 }
 
 export type Category = (typeof CATEGORIES)[number];
+
+    

@@ -9,7 +9,7 @@ import type { Budget, Expense } from '@/lib/types';
 import { getExpenses, getBudgets, updateBudgets } from '@/lib/sheets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { getCategoryIcon } from '@/lib/utils.tsx';
+import { getCategoryIcon } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Banknote, Loader2, PlusCircle, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -455,3 +455,5 @@ export default function BudgetsPage() {
     </div>
   );
 }
+
+    

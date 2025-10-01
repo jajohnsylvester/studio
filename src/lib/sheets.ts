@@ -253,7 +253,7 @@ export async function updateBudgets(year: number, month: string, budgets: Budget
     const otherMonthRows = dataRows.filter(row => row[0] !== year.toString() || row[1] !== month);
 
     // 3. Create new rows for the current month's budgets
-    const newMonthRows = budgets.map(b => [year.toString(), month, b.category, b.limit]);
+    const newMonthRows = budgets.map(b => [year.toString(), month, b.category, b.limit.toString()]);
 
     // 4. Combine and sort
     const finalRows = [...otherMonthRows, ...newMonthRows];
@@ -265,10 +265,12 @@ export async function updateBudgets(year: number, month: string, budgets: Budget
     });
 
     // 5. Clear the sheet (below headers)
-    await sheets.spreadsheets.values.clear({
-        spreadsheetId: SHEET_ID,
-        range: `${range}!A2:D${dataRows.length + 1}`,
-    });
+    if (dataRows.length > 0) {
+        await sheets.spreadsheets.values.clear({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!A2:D${dataRows.length + 1}`,
+        });
+    }
 
     // 6. Write the sorted data back
     if (finalRows.length > 0) {
@@ -282,3 +284,5 @@ export async function updateBudgets(year: number, month: string, budgets: Budget
         });
     }
 }
+
+    
