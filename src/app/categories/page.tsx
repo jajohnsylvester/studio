@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getCategories, addCategory as addCategoryToSheet, deleteCategory as deleteCategoryFromSheet, getBudgets, updateBudgets } from '@/lib/sheets';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, PlusCircle, Trash2, Save } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Save, Landmark } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { getCategoryIcon } from '@/lib/utils';
 import { CATEGORIES as staticCategories, CategoryWithBudget } from '@/lib/types';
@@ -32,6 +32,33 @@ const budgetsFormSchema = z.object({
     }))
 });
 type BudgetsFormValues = z.infer<typeof budgetsFormSchema>;
+
+const TotalBudgetDisplay = ({ control }: { control: any }) => {
+    const budgets = useWatch({
+      control,
+      name: 'budgets',
+    });
+  
+    const totalBudget = useMemo(() => {
+      if (!budgets) return 0;
+      return budgets.reduce((acc: number, current: { amount: number }) => acc + (current.amount || 0), 0);
+    }, [budgets]);
+  
+    return (
+        <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Monthly Budget</CardTitle>
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">
+                ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export default function CategoriesPage() {
   const [categoriesWithBudgets, setCategoriesWithBudgets] = useState<CategoryWithBudget[]>([]);
@@ -191,8 +218,11 @@ export default function CategoriesPage() {
         Manage Categories & Budgets
       </h1>
       
-      <div className="grid gap-6 md:grid-cols-1">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        
+        <TotalBudgetDisplay control={budgetsForm.control} />
+        
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Add New Category</CardTitle>
           </CardHeader>
@@ -221,7 +251,7 @@ export default function CategoriesPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:col-span-2 lg:col-span-3">
             <Form {...budgetsForm}>
                 <form onSubmit={budgetsForm.handleSubmit(onUpdateBudgets)}>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -306,3 +336,5 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+    
