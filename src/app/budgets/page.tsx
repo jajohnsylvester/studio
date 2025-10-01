@@ -67,6 +67,7 @@ export default function BudgetsPage() {
   const { toast } = useToast();
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditTotalBudgetOpen, setEditTotalBudgetOpen] = useState(false);
+  const [hasNoBudget, setHasNoBudget] = useState(false);
   
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -96,6 +97,7 @@ export default function BudgetsPage() {
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
+      setHasNoBudget(false);
       try {
         const [sheetExpenses, sheetBudgets] = await Promise.all([
           getExpenses(), 
@@ -115,6 +117,7 @@ export default function BudgetsPage() {
              // If no budget for current month, we will show an option to copy from last month.
              // We'll leave effectiveBudgets empty for now.
              effectiveBudgets = [];
+             setHasNoBudget(true);
         }
         setBudgets(effectiveBudgets);
         
@@ -210,6 +213,7 @@ export default function BudgetsPage() {
     setCategories(prev => [...prev, name]);
     const newBudgets = [...budgets, { category: name, limit }];
     setBudgets(newBudgets);
+    setHasNoBudget(false);
     try {
         await updateBudgets(selectedYear, selectedMonth, newBudgets);
         setAddCategoryOpen(false);
@@ -267,31 +271,40 @@ export default function BudgetsPage() {
         </div>
       </div>
       
-       {budgets.length === 0 ? (
+       {hasNoBudget && budgets.length === 0 && (
           <Card className="text-center p-8">
               <CardTitle>No Budget Set for {selectedMonth} {selectedYear}</CardTitle>
               <CardDescription className="mt-2">
-                  Would you like to copy the budget from the most recent month as a starting point?
+                  You can copy last month's budget or create a new one from scratch.
               </CardDescription>
-              <Button className="mt-4" onClick={async () => {
-                   const currentMonthIndex = months.indexOf(selectedMonth);
-                   const lastMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
-                   const lastYear = currentMonthIndex > 0 ? selectedYear : selectedYear - 1;
-                   const lastMonth = months[lastMonthIndex];
-                   
-                   const lastBudgets = await getBudgets(lastYear, lastMonth);
-                   if (lastBudgets.length > 0) {
-                       setBudgets(lastBudgets);
-                       await updateBudgets(selectedYear, selectedMonth, lastBudgets);
-                       toast({title: 'Budget copied', description: `Budget from ${lastMonth} ${lastYear} has been copied.`})
-                   } else {
-                       toast({variant: 'destructive', title: 'No recent budget found', description: `Could not find a budget for ${lastMonth} ${lastYear}.`})
-                   }
-              }}>
-                  Copy Last Month's Budget
-              </Button>
+              <div className='flex gap-2 justify-center'>
+                <Button className="mt-4" onClick={async () => {
+                    const currentMonthIndex = months.indexOf(selectedMonth);
+                    const lastMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
+                    const lastYear = currentMonthIndex > 0 ? selectedYear : selectedYear - 1;
+                    const lastMonth = months[lastMonthIndex];
+                    
+                    const lastBudgets = await getBudgets(lastYear, lastMonth);
+                    if (lastBudgets.length > 0) {
+                        setBudgets(lastBudgets);
+                        await updateBudgets(selectedYear, selectedMonth, lastBudgets);
+                        toast({title: 'Budget copied', description: `Budget from ${lastMonth} ${lastYear} has been copied.`})
+                        setHasNoBudget(false);
+                    } else {
+                        toast({variant: 'destructive', title: 'No recent budget found', description: `Could not find a budget for ${lastMonth} ${lastYear}.`})
+                    }
+                }}>
+                    Copy Last Month's Budget
+                </Button>
+                <DialogTrigger asChild>
+                    <Button className="mt-4" variant="secondary" onClick={() => setAddCategoryOpen(true)}>
+                        Create New Budget
+                    </Button>
+                </DialogTrigger>
+              </div>
           </Card>
-      ) : (
+      )}
+
       <>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -453,7 +466,7 @@ export default function BudgetsPage() {
             </CardContent>
         </Card>
       </>
-      )}
+
     </div>
   );
 }
