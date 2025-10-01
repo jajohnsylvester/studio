@@ -20,6 +20,7 @@ import {
   PieChart,
   Wallet,
   Receipt,
+  Shapes,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/transactions', label: 'Transactions', icon: Receipt },
+    { href: '/categories', label: 'Categories', icon: Shapes },
     { href: '/reports', label: 'Reports', icon: PieChart },
   ];
 

@@ -7,9 +7,9 @@ export type Expense = {
   date: string; // Using string for simplicity, can be parsed to Date
 };
 
-// This list should be dynamically managed if categories can be added by the user.
-// For now, it's a starting point and should be updated if new static categories are added.
-export let CATEGORIES = [
+// This list contains default categories that cannot be deleted.
+// User-defined categories will be added from Google Sheets.
+export const CATEGORIES = [
   'Grocery',
   'Fruits',
   'Veggi',
@@ -19,12 +19,6 @@ export let CATEGORIES = [
   'Petrol',
   'Credit Card',
   'Other',
-] as string[];
-
-export function addCategory(newCategory: string) {
-    if (!CATEGORIES.find(c => c.toLowerCase() === newCategory.toLowerCase())) {
-        CATEGORIES.push(newCategory);
-    }
-}
+] as const;
 
 export type Category = (typeof CATEGORIES)[number];

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,10 +38,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Expense, CATEGORIES } from '@/lib/types';
+import { Expense, CATEGORIES as staticCategories } from '@/lib/types';
 import { Loader2, PlusCircle, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
+import { getCategories } from '@/lib/sheets';
+import { useToast } from '@/hooks/use-toast';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -65,6 +67,30 @@ type AddExpenseDialogProps = {
 export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadCategories() {
+        if (open) {
+            try {
+                const sheetCategories = await getCategories();
+                const combined = [...staticCategories, ...sheetCategories];
+                const uniqueCategories = [...new Set(combined)].sort();
+                setCategories(uniqueCategories);
+            } catch (error) {
+                 console.error("Failed to load categories", error);
+                 toast({
+                    variant: "destructive",
+                    title: "Failed to load categories",
+                    description: "Using default categories list.",
+                 });
+                 setCategories(staticCategories.sort());
+            }
+        }
+    }
+    loadCategories();
+  }, [open, toast]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -160,7 +186,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {CATEGORIES.map((category) => (
+                      {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>

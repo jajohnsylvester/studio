@@ -37,10 +37,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Expense, CATEGORIES } from '@/lib/types';
+import { Expense, CATEGORIES as staticCategories } from '@/lib/types';
 import { Loader2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
+import { getCategories } from '@/lib/sheets';
+import { useToast } from '@/hooks/use-toast';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -66,6 +68,30 @@ type EditExpenseDialogProps = {
 
 export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }: EditExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function loadCategories() {
+        if (isOpen) {
+            try {
+                const sheetCategories = await getCategories();
+                const combined = [...staticCategories, ...sheetCategories];
+                const uniqueCategories = [...new Set(combined)].sort();
+                setCategories(uniqueCategories);
+            } catch (error) {
+                 console.error("Failed to load categories", error);
+                 toast({
+                    variant: "destructive",
+                    title: "Failed to load categories",
+                    description: "Using default categories list.",
+                 });
+                 setCategories(staticCategories.sort());
+            }
+        }
+    }
+    loadCategories();
+  }, [isOpen, toast]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseFormSchema),
@@ -163,7 +189,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {CATEGORIES.map((category) => (
+                      {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>

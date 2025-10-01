@@ -21,7 +21,8 @@ import {
   Cookie,
   Plus,
   Fuel,
-  CreditCard
+  CreditCard,
+  Shapes
 } from 'lucide-react';
 import React from "react";
 
@@ -70,9 +71,9 @@ export const getCategoryIcon = (category: string, props?: LucideProps) => {
       return <Receipt {...iconProps} />;
     case 'Credit Card':
       return <CreditCard {...iconProps} />;
+    case 'Categories':
+      return <Shapes {...iconProps} />;
     default:
       return <MoreHorizontal {...iconProps} />;
   }
 };
-
-    

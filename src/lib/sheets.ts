@@ -203,3 +203,84 @@ export async function deleteExpense(id: string): Promise<void> {
       }
   })
 }
+
+// --- CATEGORIES ---
+
+export async function getCategories(): Promise<string[]> {
+    try {
+        const sheets = getSheets();
+        const range = 'Categories';
+        await ensureSheetExists(sheets, range, ['name']);
+        
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!A2:A`,
+        });
+
+        const rows = response.data.values;
+        if (!rows) return [];
+
+        return rows.flat().filter(Boolean); // [['Cat1'], ['Cat2']] -> ['Cat1', 'Cat2']
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+export async function addCategory(categoryName: string): Promise<void> {
+    const sheets = getSheets();
+    const range = 'Categories';
+    
+    await sheets.spreadsheets.values.append({
+        spreadsheetId: SHEET_ID,
+        range: range,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+            values: [[categoryName]],
+        },
+    });
+}
+
+export async function deleteCategory(categoryName: string): Promise<void> {
+    const sheets = getSheets();
+    const range = 'Categories';
+
+    const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A:A`,
+    });
+
+    const categories = response.data.values;
+    if (!categories) {
+        throw new Error("Category sheet is empty.");
+    }
+    
+    const rowIndex = categories.findIndex(row => row[0] === categoryName);
+
+    if (rowIndex === -1) {
+        throw new Error('Category not found to delete.');
+    }
+    
+    const sheetId = await getSheetIdByName(sheets, range);
+    if (sheetId === undefined) {
+        throw new Error(`Could not find sheet ID for "${range}" to delete row.`);
+    }
+
+    await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: {
+            requests: [
+                {
+                    deleteDimension: {
+                        range: {
+                            sheetId: sheetId,
+                            dimension: 'ROWS',
+                            startIndex: rowIndex,
+                            endIndex: rowIndex + 1,
+                        }
+                    }
+                }
+            ]
+        }
+    });
+}
