@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { DashboardSummary } from '@/components/dashboard-summary';
 import { ExpenseList } from '@/components/expense-list';
@@ -23,12 +23,13 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
+import { Progress } from '@/components/ui/progress';
 import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
-import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
-import type { Expense } from '@/lib/types';
-import { Loader2, Download } from 'lucide-react';
+import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
+import type { Expense, Budget } from '@/lib/types';
+import { Loader2, Download, TrendingUp } from 'lucide-react';
 import { getMonth, getYear, format } from 'date-fns';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import {
@@ -74,6 +75,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
@@ -81,25 +83,28 @@ export default function DashboardPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      try {
-        const sheetExpenses = await getExpenses();
-        setExpenses(sheetExpenses);
-      } catch (error) {
-        console.error("Failed to load data", error);
-        toast({
-            variant: "destructive",
-            title: "Failed to load data",
-            description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
-        })
-      } finally {
-        setIsLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
+      setExpenses(sheetExpenses);
+      setBudgets(sheetBudgets);
+    } catch (error) {
+      console.error("Failed to load data", error);
+      toast({
+          variant: "destructive",
+          title: "Failed to load data",
+          description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
+      })
+    } finally {
+      setIsLoading(false);
     }
+  }, [toast]);
+
+  useEffect(() => {
     loadData();
-  }, [toast, selectedYear, selectedMonth]);
+  }, [loadData]);
+
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
@@ -112,7 +117,7 @@ export default function DashboardPage() {
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
       const newExpense = await addExpense(newExpenseData);
-      setExpenses((prevExpenses) => [newExpense, ...prevExpenses]);
+      setExpenses((prevExpenses) => [newExpense, ...prevExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       toast({
         title: 'Expense Added',
         description: `"${newExpense.description}" was added.`,
@@ -234,6 +239,26 @@ export default function DashboardPage() {
     return config;
   }, [pieChartData]);
   
+  const categoryBudgets = useMemo(() => {
+    const activeBudgets = budgets.filter(b => b.amount > 0);
+    const categorySpending = pieChartData.reduce((acc, item) => {
+        acc[item.name] = item.value;
+        return acc;
+    }, {} as {[key: string]: number});
+
+    return activeBudgets.map(budget => {
+        const spent = categorySpending[budget.category] || 0;
+        const progress = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
+        return {
+            ...budget,
+            spent,
+            progress: Math.min(progress, 100), // Cap at 100%
+            isOver: progress > 100
+        };
+    }).sort((a, b) => b.progress - a.progress);
+  }, [budgets, pieChartData]);
+
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -283,9 +308,38 @@ export default function DashboardPage() {
         </TabsList>
         {months.map(month => (
           <TabsContent key={month} value={month} className="mt-6">
-            <DashboardSummary expenses={filteredExpenses} />
+            <DashboardSummary expenses={filteredExpenses} budgets={budgets} />
             
             <div className="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                    <CardTitle>Budget Progress</CardTitle>
+                    <CardDescription>Your spending vs budgets for {month} {selectedYear}.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {categoryBudgets.length > 0 ? (
+                        <div className="space-y-4">
+                            {categoryBudgets.map(budget => (
+                                <div key={budget.category} className="space-y-1">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-medium">{budget.category}</span>
+                                        <span className={budget.isOver ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                            ₹{budget.spent.toLocaleString()} / ₹{budget.amount.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <Progress value={budget.progress} className={budget.isOver ? "[&>div]:bg-destructive" : ""} />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center py-12">
+                           <TrendingUp className="h-12 w-12 text-muted-foreground" />
+                           <p className="mt-4 text-muted-foreground">No budgets set for this month.</p>
+                           <p className="text-sm text-muted-foreground">Go to the Categories page to set your budgets.</p>
+                        </div>
+                    )}
+                </CardContent>
+              </Card>
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Recent Transactions</CardTitle>

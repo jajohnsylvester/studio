@@ -1,21 +1,21 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getCategories, addCategory as addCategoryToSheet, deleteCategory as deleteCategoryFromSheet } from '@/lib/sheets';
+import { getCategories, addCategory as addCategoryToSheet, deleteCategory as deleteCategoryFromSheet, getBudgets, updateBudgets } from '@/lib/sheets';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Save } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { getCategoryIcon } from '@/lib/utils';
-import { CATEGORIES as staticCategories } from '@/lib/types';
+import { CATEGORIES as staticCategories, CategoryWithBudget } from '@/lib/types';
 
 
 const categoryFormSchema = z.object({
@@ -23,67 +23,94 @@ const categoryFormSchema = z.object({
     message: 'Category name must be at least 2 characters.',
   }),
 });
-
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
+const budgetsFormSchema = z.object({
+    budgets: z.array(z.object({
+        category: z.string(),
+        amount: z.coerce.number().min(0, "Budget must be non-negative."),
+    }))
+});
+type BudgetsFormValues = z.infer<typeof budgetsFormSchema>;
+
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categoriesWithBudgets, setCategoriesWithBudgets] = useState<CategoryWithBudget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [isSubmittingBudgets, setIsSubmittingBudgets] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<CategoryFormValues>({
+  const categoryForm = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
-    defaultValues: {
-      name: '',
-    },
+    defaultValues: { name: '' },
+  });
+  
+  const budgetsForm = useForm<BudgetsFormValues>({
+    resolver: zodResolver(budgetsFormSchema),
+    defaultValues: { budgets: [] },
   });
 
-  useEffect(() => {
-    async function loadCategories() {
-      setIsLoading(true);
-      try {
-        const sheetCategories = await getCategories();
-        setCategories(sheetCategories);
-      } catch (error) {
-        console.error("Failed to load categories", error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load categories",
-          description: "Could not fetch categories from Google Sheets.",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadCategories();
-  }, [toast]);
-  
-  const allCategories = useMemo(() => {
-    const combined = [...staticCategories, ...categories];
-    return [...new Set(combined)].sort();
-  }, [categories]);
+  const { fields, replace } = useFieldArray({
+    control: budgetsForm.control,
+    name: "budgets",
+  });
 
-  async function onSubmit(data: CategoryFormValues) {
-    setIsSubmitting(true);
-    if (allCategories.some(c => c.toLowerCase() === data.name.toLowerCase())) {
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [sheetCategories, sheetBudgets] = await Promise.all([getCategories(), getBudgets()]);
+      const combined = [...staticCategories, ...sheetCategories];
+      const uniqueCategories = [...new Set(combined)].sort();
+
+      const budgetMap = new Map(sheetBudgets.map(b => [b.category, b.amount]));
+      
+      const categoriesWithBudgetsData = uniqueCategories.map(cat => ({
+        name: cat,
+        budget: budgetMap.get(cat) || 0,
+        isStatic: staticCategories.includes(cat as any),
+      }));
+
+      setCategoriesWithBudgets(categoriesWithBudgetsData);
+      replace(categoriesWithBudgetsData.map(c => ({ category: c.name, amount: c.budget })));
+
+    } catch (error) {
+      console.error("Failed to load data", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to load data",
+        description: "Could not fetch categories or budgets from Google Sheets.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast, replace]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  
+
+  async function onAddCategory(data: CategoryFormValues) {
+    setIsSubmittingCategory(true);
+    if (categoriesWithBudgets.some(c => c.name.toLowerCase() === data.name.toLowerCase())) {
         toast({
             variant: 'destructive',
             title: 'Category exists',
             description: `The category "${data.name}" already exists.`,
         });
-        setIsSubmitting(false);
+        setIsSubmittingCategory(false);
         return;
     }
     try {
       await addCategoryToSheet(data.name);
-      setCategories(prev => [...prev, data.name].sort());
+      setCategoriesWithBudgets(prev => [...prev, { name: data.name, budget: 0, isStatic: false }].sort((a,b) => a.name.localeCompare(b.name)));
+      replace([...budgetsForm.getValues().budgets, { category: data.name, amount: 0 }].sort((a,b) => a.category.localeCompare(b.category)));
       toast({
         title: 'Category Added',
         description: `"${data.name}" was successfully added.`,
       });
-      form.reset();
+      categoryForm.reset();
     } catch (error) {
       console.error('Failed to add category:', error);
       toast({
@@ -92,14 +119,36 @@ export default function CategoriesPage() {
         description: 'Failed to add category to Google Sheet.',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingCategory(false);
     }
   }
+  
+  async function onUpdateBudgets(data: BudgetsFormValues) {
+      setIsSubmittingBudgets(true);
+      try {
+          const budgetsToUpdate = data.budgets.map(b => ({ category: b.category, amount: b.amount }));
+          await updateBudgets(budgetsToUpdate);
+          toast({
+              title: "Budgets Updated",
+              description: "Your category budgets have been saved successfully.",
+          });
+      } catch (error) {
+          console.error("Failed to update budgets", error);
+          toast({
+              variant: "destructive",
+              title: "Error updating budgets",
+              description: "Could not save budgets to Google Sheets.",
+          });
+      } finally {
+          setIsSubmittingBudgets(false);
+      }
+  }
+
 
   async function handleDeleteCategory() {
     if (!deletingCategory) return;
     
-    if (staticCategories.includes(deletingCategory)) {
+    if (staticCategories.includes(deletingCategory as any)) {
         toast({
             variant: 'destructive',
             title: 'Cannot Delete',
@@ -111,7 +160,8 @@ export default function CategoriesPage() {
 
     try {
       await deleteCategoryFromSheet(deletingCategory);
-      setCategories(prev => prev.filter(c => c !== deletingCategory));
+      setCategoriesWithBudgets(prev => prev.filter(c => c.name !== deletingCategory));
+      replace(budgetsForm.getValues().budgets.filter(b => b.category !== deletingCategory));
       toast({
         title: 'Category Deleted',
         description: `"${deletingCategory}" was deleted.`,
@@ -138,23 +188,22 @@ export default function CategoriesPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Manage Categories
+        Manage Categories & Budgets
       </h1>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+      <div className="grid gap-6 md:grid-cols-1">
+        <Card>
           <CardHeader>
             <CardTitle>Add New Category</CardTitle>
-            <CardDescription>Create a new category for your expenses.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Form {...categoryForm}>
+              <form onSubmit={categoryForm.handleSubmit(onAddCategory)} className="flex items-end gap-4">
                 <FormField
-                  control={form.control}
+                  control={categoryForm.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex-grow">
                       <FormLabel>Category Name</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., Subscriptions" {...field} />
@@ -163,56 +212,80 @@ export default function CategoriesPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                  )}
-                  {isSubmitting ? 'Adding...' : 'Add Category'}
+                <Button type="submit" disabled={isSubmittingCategory}>
+                  {isSubmittingCategory ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                  {isSubmittingCategory ? 'Adding...' : 'Add Category'}
                 </Button>
               </form>
             </Form>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Your Categories</CardTitle>
-            <CardDescription>Here is a list of all your expense categories.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {allCategories.map((category) => (
-                  <TableRow key={category}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      {getCategoryIcon(category)}
-                      {category}
-                    </TableCell>
-                    <TableCell className="text-right">
-                       {!staticCategories.includes(category) && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeletingCategory(category)}
-                            className="text-destructive hover:text-destructive"
-                        >
-                            <Trash2 className="h-4 w-4" />
+        <Card>
+            <Form {...budgetsForm}>
+                <form onSubmit={budgetsForm.handleSubmit(onUpdateBudgets)}>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                        <CardTitle>Your Categories & Budgets</CardTitle>
+                        <CardDescription>Manage your expense categories and set a monthly budget for each.</CardDescription>
+                        </div>
+                         <Button type="submit" disabled={isSubmittingBudgets}>
+                            {isSubmittingBudgets ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSubmittingBudgets ? 'Saving...' : 'Save Budgets'}
                         </Button>
-                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="w-48">Budget (₹)</TableHead>
+                            <TableHead className="text-right w-24">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {fields.map((field, index) => (
+                            <TableRow key={field.id}>
+                                <TableCell className="font-medium flex items-center gap-2">
+                                {getCategoryIcon(categoriesWithBudgets[index]?.name)}
+                                {categoriesWithBudgets[index]?.name}
+                                </TableCell>
+                                <TableCell>
+                                    <FormField
+                                        control={budgetsForm.control}
+                                        name={`budgets.${index}.amount`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
+                                                        <Input type="number" step="1" placeholder="0" className="pl-7" {...field} />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage/>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                {!categoriesWithBudgets[index]?.isStatic && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setDeletingCategory(categoriesWithBudgets[index]?.name)}
+                                        className="text-destructive hover:text-destructive"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                        </Table>
+                    </CardContent>
+                </form>
+            </Form>
         </Card>
       </div>
 
@@ -233,3 +306,4 @@ export default function CategoriesPage() {
     </div>
   );
 }
+

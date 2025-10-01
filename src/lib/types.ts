@@ -22,3 +22,14 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+export type Budget = {
+    category: string;
+    amount: number;
+};
+
+export type CategoryWithBudget = {
+    name: string;
+    budget: number;
+    isStatic: boolean;
+};

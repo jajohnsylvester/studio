@@ -2,7 +2,7 @@
 'use server';
 
 import { google } from 'googleapis';
-import type { Expense } from './types';
+import type { Expense, Budget } from './types';
 import { format } from 'date-fns';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
@@ -282,5 +282,54 @@ export async function deleteCategory(categoryName: string): Promise<void> {
                 }
             ]
         }
+    });
+}
+
+
+// --- BUDGETS ---
+export async function getBudgets(): Promise<Budget[]> {
+    try {
+        const sheets = getSheets();
+        const range = 'Budgets';
+        await ensureSheetExists(sheets, range, ['category', 'amount']);
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!A2:B`,
+        });
+
+        const rows = response.data.values;
+        if (!rows) return [];
+        
+        return rows.map(row => ({
+            category: row[0],
+            amount: parseFloat(row[1]) || 0,
+        })).filter(b => b.category);
+    } catch (error) {
+        console.error('Error fetching budgets:', error);
+        return [];
+    }
+}
+
+export async function updateBudgets(budgets: Budget[]): Promise<void> {
+    const sheets = getSheets();
+    const range = 'Budgets';
+    
+    // Clear existing budgets (A2:B)
+    await sheets.spreadsheets.values.clear({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A2:B`,
+    });
+    
+    if(budgets.length === 0) return;
+    
+    // Write new budgets
+    await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A2`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+            values: budgets.map(b => [b.category, b.amount]),
+        },
     });
 }

@@ -1,20 +1,23 @@
 
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Expense } from '@/lib/types';
-import { ArrowDownCircle } from 'lucide-react';
+import type { Expense, Budget } from '@/lib/types';
+import { ArrowDownCircle, Banknote, Landmark } from 'lucide-react';
+import Link from 'next/link';
 
 type DashboardSummaryProps = {
   expenses: Expense[];
+  budgets: Budget[];
 };
 
-export function DashboardSummary({ expenses }: DashboardSummaryProps) {
+export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
   const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+  const remainingBudget = totalBudget - totalSpent;
+  const isOverBudget = remainingBudget < 0;
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Link href="/transactions">
-        <Card className="hover:bg-muted/50 transition-colors col-span-3">
+        <Card className="hover:bg-muted/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
             <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />
@@ -25,7 +28,32 @@ export function DashboardSummary({ expenses }: DashboardSummaryProps) {
             </div>
           </CardContent>
         </Card>
+       <Link href="/categories">
+        <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">
+                ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+            </CardContent>
+        </Card>
       </Link>
+        <Card className={isOverBudget ? "bg-destructive/10 border-destructive" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+                {isOverBudget ? "Over Budget By" : "Remaining Budget"}
+            </CardTitle>
+            <Banknote className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${isOverBudget ? 'text-destructive' : ''}`}>
+                 ₹{Math.abs(remainingBudget).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
     </div>
   );
 }
