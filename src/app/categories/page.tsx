@@ -33,33 +33,6 @@ const budgetsFormSchema = z.object({
 });
 type BudgetsFormValues = z.infer<typeof budgetsFormSchema>;
 
-const TotalBudgetDisplay = ({ control }: { control: any }) => {
-    const budgets = useWatch({
-      control,
-      name: 'budgets',
-    });
-  
-    const totalBudget = useMemo(() => {
-      if (!budgets) return 0;
-      return budgets.reduce((acc: number, current: { amount: number }) => acc + (current.amount || 0), 0);
-    }, [budgets]);
-  
-    return (
-        <Card className="hover:bg-muted/50 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Monthly Budget</CardTitle>
-                <Landmark className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">
-                ₹{totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-
 export default function CategoriesPage() {
   const [categoriesWithBudgets, setCategoriesWithBudgets] = useState<CategoryWithBudget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -220,8 +193,6 @@ export default function CategoriesPage() {
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
-        <TotalBudgetDisplay control={budgetsForm.control} />
-        
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Add New Category</CardTitle>
@@ -336,3 +307,5 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
+    
