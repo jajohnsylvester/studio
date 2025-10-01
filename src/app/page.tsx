@@ -261,13 +261,13 @@ export default function DashboardPage() {
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
   
-    if (isLoading) {
-      return (
-          <div className="flex justify-center items-center h-screen">
-              <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          </div>
-      );
-    }
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                   <CardHeader>
                     <CardTitle>Budget Overview</CardTitle>
                     <CardDescription>Your total spending relative to your total budget for {month} {selectedYear}.</CardDescription>
-                  </Header>
+                  </CardHeader>
                   <CardContent>
                     {budgetChartData.length > 0 ? (
                       <ChartContainer config={budgetChartConfig} className="mx-auto aspect-square max-h-[350px]">
@@ -403,3 +403,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
