@@ -42,6 +42,7 @@ import { Expense, CATEGORIES as initialCategories } from '@/lib/types';
 import { Loader2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { initialBudgets } from '@/lib/data';
+import { Textarea } from './ui/textarea';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -135,7 +136,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Coffee with a friend" {...field} />
+                    <Textarea placeholder="e.g., Coffee with a friend" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
