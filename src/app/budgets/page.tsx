@@ -296,11 +296,57 @@ export default function BudgetsPage() {
                 }}>
                     Copy Last Month's Budget
                 </Button>
-                <DialogTrigger asChild>
-                    <Button className="mt-4" variant="secondary" onClick={() => setAddCategoryOpen(true)}>
-                        Create New Budget
-                    </Button>
-                </DialogTrigger>
+                <Dialog open={isAddCategoryOpen} onOpenChange={setAddCategoryOpen}>
+                  <DialogTrigger asChild>
+                      <Button className="mt-4" variant="secondary">
+                          Create New Budget
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <DialogHeader>
+                          <DialogTitle>Add New Category</DialogTitle>
+                          <DialogDescription>
+                              Enter a name and budget for your new category.
+                          </DialogDescription>
+                      </DialogHeader>
+                      <Form {...addCategoryForm}>
+                          <form onSubmit={addCategoryForm.handleSubmit(handleAddCategory)} className="space-y-4">
+                              <FormField
+                                  control={addCategoryForm.control}
+                                  name="name"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                      <FormLabel>Category Name</FormLabel>
+                                      <FormControl>
+                                          <Input placeholder="e.g., Subscriptions" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <FormField
+                                  control={addCategoryForm.control}
+                                  name="limit"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                      <FormLabel>Budget Limit</FormLabel>
+                                      <FormControl>
+                                          <div className="relative">
+                                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground">₹</span>
+                                          <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
+                                          </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <DialogFooter>
+                                  <Button type="submit">Add Category</Button>
+                              </DialogFooter>
+                          </form>
+                      </Form>
+                  </DialogContent>
+                </Dialog>
               </div>
           </Card>
       )}
@@ -470,5 +516,3 @@ export default function BudgetsPage() {
     </div>
   );
 }
-
-    
