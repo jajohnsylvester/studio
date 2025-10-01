@@ -75,7 +75,6 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
@@ -85,7 +84,6 @@ export default function DashboardPage() {
   
   useEffect(() => {
     async function loadData() {
-      setIsLoading(true);
       try {
         const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
         setExpenses(sheetExpenses);
@@ -97,8 +95,6 @@ export default function DashboardPage() {
             title: "Failed to load data",
             description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
         })
-      } finally {
-        setIsLoading(false);
       }
     }
     loadData();
@@ -262,14 +258,6 @@ export default function DashboardPage() {
     Remaining: { label: 'Remaining', color: 'hsl(var(--chart-1))' },
   };
 
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -370,7 +358,7 @@ export default function DashboardPage() {
                           </Pie>
                           <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
                         </PieChart>
-                      </Container>
+                      </ChartContainer>
                     ) : (
                       <div className="flex h-[350px] items-center justify-center text-muted-foreground">No budget data available.</div>
                     )}
@@ -404,3 +392,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
