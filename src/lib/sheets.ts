@@ -2,7 +2,7 @@
 'use server';
 
 import { google } from 'googleapis';
-import type { Expense } from './types';
+import type { Expense, Budget } from './types';
 import { format } from 'date-fns';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
@@ -27,23 +27,40 @@ const getSheets = () => {
   return google.sheets({ version: 'v4', auth });
 }
 
-async function getFirstSheetName(sheets: any): Promise<string> {
+async function getSheetIdByName(sheets: any, sheetName: string): Promise<number | undefined> {
     const response = await sheets.spreadsheets.get({
         spreadsheetId: SHEET_ID,
     });
-    const firstSheet = response.data.sheets?.[0];
-    const sheetName = firstSheet?.properties?.title;
+    const sheet = response.data.sheets?.find(s => s.properties?.title === sheetName);
+    return sheet?.properties?.sheetId;
+}
 
-    if (!sheetName) {
-        throw new Error('No sheets found in the spreadsheet.');
+async function ensureSheetExists(sheets: any, sheetName: string, headers: string[]) {
+    const sheetId = await getSheetIdByName(sheets, sheetName);
+    if (sheetId === undefined) {
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SHEET_ID,
+            requestBody: {
+                requests: [{ addSheet: { properties: { title: sheetName } } }],
+            },
+        });
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SHEET_ID,
+            range: `${sheetName}!A1`,
+            valueInputOption: 'RAW',
+            requestBody: {
+                values: [headers],
+            },
+        });
     }
-    return sheetName;
 }
 
 export async function getExpenses(): Promise<Expense[]> {
   try {
     const sheets = getSheets();
-    const range = await getFirstSheetName(sheets);
+    const range = 'Expenses';
+    await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount']);
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: range,
@@ -51,17 +68,6 @@ export async function getExpenses(): Promise<Expense[]> {
 
     const rows = response.data.values;
     if (!rows || rows.length <= 1) {
-      // If there are no rows or only a header, create the header row.
-      if (!rows || rows.length === 0) {
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SHEET_ID,
-          range: `${range}!A1`,
-          valueInputOption: 'RAW',
-          requestBody: {
-            values: [['id', 'date', 'description', 'category', 'amount']],
-          },
-        });
-      }
       return [];
     }
 
@@ -72,9 +78,8 @@ export async function getExpenses(): Promise<Expense[]> {
     const categoryIndex = headers.indexOf('category');
     const amountIndex = headers.indexOf('amount');
     
-    // If headers are missing, assume default order, but log a warning.
     if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex].includes(-1)) {
-        console.warn("One or more headers (id, date, description, category, amount) are missing in the Google Sheet. Assuming default order. Please add the header row for reliable data processing.");
+        console.warn("One or more headers (id, date, description, category, amount) are missing in the Expenses Sheet. Assuming default order. Please add the header row for reliable data processing.");
     }
 
 
@@ -95,14 +100,13 @@ export async function getExpenses(): Promise<Expense[]> {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error('Error fetching expenses from Google Sheets:', error);
-    // Return empty array on error to prevent app crash, error is logged for debugging.
     return [];
   }
 }
 
 export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
-  const range = await getFirstSheetName(sheets);
+  const range = 'Expenses';
   const newId = new Date().toISOString() + Math.random();
   const newExpense: Expense = { ...expense, id: newId };
   const newRow = [newExpense.id, format(new Date(newExpense.date), 'yyyy-MM-dd'), newExpense.description, newExpense.category, newExpense.amount];
@@ -120,7 +124,7 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
 }
 
 async function findRowById(sheets: any, id: string): Promise<{rowIndex: number, range: string} | null> {
-    const range = await getFirstSheetName(sheets);
+    const range = 'Expenses';
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${range}!A:A`, // Assuming 'id' is in column A
@@ -165,11 +169,7 @@ export async function deleteExpense(id: string): Promise<void> {
   
   const { rowIndex } = found;
 
-  const response = await sheets.spreadsheets.get({
-    spreadsheetId: SHEET_ID,
-  });
-  const firstSheet = response.data.sheets?.[0];
-  const sheetId = firstSheet?.properties?.sheetId;
+  const sheetId = await getSheetIdByName(sheets, 'Expenses');
   
   if (sheetId === undefined) {
     throw new Error("Could not find sheet ID to delete row.");
@@ -193,4 +193,67 @@ export async function deleteExpense(id: string): Promise<void> {
           ]
       }
   })
+}
+
+export async function getBudgets(): Promise<Budget[]> {
+  try {
+    const sheets = getSheets();
+    const range = 'Budgets';
+    await ensureSheetExists(sheets, range, ['category', 'limit']);
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: range,
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length <= 1) {
+      return [];
+    }
+    
+    const headers = rows[0];
+    const categoryIndex = headers.indexOf('category');
+    const limitIndex = headers.indexOf('limit');
+
+    return rows.slice(1).map((row): Budget | null => {
+        if (row.every(cell => !cell)) return null;
+        const limit = parseFloat(row[limitIndex > -1 ? limitIndex : 1]);
+        if (isNaN(limit)) return null;
+        return {
+            category: row[categoryIndex > -1 ? categoryIndex : 0] || 'Other',
+            limit,
+        };
+    }).filter((b): b is Budget => b !== null);
+  } catch (error) {
+    console.error('Error fetching budgets from Google Sheets:', error);
+    return [];
+  }
+}
+
+export async function updateBudgets(budgets: Budget[]): Promise<void> {
+    const sheets = getSheets();
+    const range = 'Budgets';
+    const sheetId = await getSheetIdByName(sheets, range);
+     if (sheetId === undefined) {
+        // This should not happen if getBudgets was called before
+        await ensureSheetExists(sheets, range, ['category', 'limit']);
+    }
+
+    const values = budgets.map(b => [b.category, b.limit]);
+
+    // Clear existing data (but not headers)
+    await sheets.spreadsheets.values.clear({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A2:B`, 
+    });
+
+    // Write new data
+    await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A2`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+            values: values,
+        },
+    });
 }

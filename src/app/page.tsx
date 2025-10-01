@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -26,7 +27,7 @@ import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
 import { initialBudgets } from '@/lib/data';
-import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
+import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
 import type { Budget, Expense } from '@/lib/types';
 import { Loader2, Download } from 'lucide-react';
 import { getMonth, getYear, format } from 'date-fns';
@@ -75,7 +76,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [budgets] = useState<Budget[]>(initialBudgets);
+  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -83,23 +84,24 @@ export default function DashboardPage() {
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   
   useEffect(() => {
-    async function loadExpenses() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const sheetExpenses = await getExpenses();
+        const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
         setExpenses(sheetExpenses);
+        setBudgets(sheetBudgets.length > 0 ? sheetBudgets : initialBudgets);
       } catch (error) {
-        console.error("Failed to load expenses", error);
+        console.error("Failed to load data", error);
         toast({
             variant: "destructive",
             title: "Failed to load data",
-            description: "Could not fetch expenses from Google Sheets. Make sure your environment variables are set correctly.",
+            description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
         })
       } finally {
         setIsLoading(false);
       }
     }
-    loadExpenses();
+    loadData();
   }, [toast]);
 
   const filteredExpenses = useMemo(() => {
@@ -240,7 +242,7 @@ export default function DashboardPage() {
   }, [filteredExpenses]);
 
   const totalBudget = useMemo(() => {
-    return budgets.reduce((sum, budget) => sum + budget.limit, 0);
+    return budgets.filter(b => b.category !== 'Credit Card').reduce((sum, budget) => sum + budget.limit, 0);
   }, [budgets]);
 
   const budgetChartData = useMemo(() => {
@@ -368,7 +370,7 @@ export default function DashboardPage() {
                           </Pie>
                           <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
                         </PieChart>
-                      </ChartContainer>
+                      </Container>
                     ) : (
                       <div className="flex h-[350px] items-center justify-center text-muted-foreground">No budget data available.</div>
                     )}

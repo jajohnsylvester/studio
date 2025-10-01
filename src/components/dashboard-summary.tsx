@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Budget, Expense } from '@/lib/types';
@@ -10,7 +11,7 @@ type DashboardSummaryProps = {
 
 export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
   const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+  const totalBudget = budgets.filter(b => b.category !== 'Credit Card').reduce((sum, budget) => sum + budget.limit, 0);
   const remainingBudget = totalBudget - totalSpent;
 
   return (

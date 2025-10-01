@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Budget, Expense } from '@/lib/types';
 import { initialBudgets } from '@/lib/data';
-import { getExpenses } from '@/lib/sheets';
+import { getExpenses, getBudgets, updateBudgets } from '@/lib/sheets';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { getCategoryIcon } from '@/lib/utils.tsx';
@@ -32,7 +32,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { addCategory as addGlobalCategory } from '@/lib/types';
+import { addCategory as addGlobalCategory, CATEGORIES } from '@/lib/types';
 
 const addCategoryFormSchema = z.object({
     name: z.string().min(2, {
@@ -55,8 +55,8 @@ type EditTotalBudgetFormValues = z.infer<typeof editTotalBudgetFormSchema>;
 export default function BudgetsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
-  const [categories, setCategories] = useState<string[]>(initialBudgets.map(b => b.category));
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
   const [isAddCategoryOpen, setAddCategoryOpen] = useState(false);
   const [isEditTotalBudgetOpen, setEditTotalBudgetOpen] = useState(false);
@@ -84,58 +84,70 @@ export default function BudgetsPage() {
 
 
   useEffect(() => {
-    async function loadExpenses() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const sheetExpenses = await getExpenses();
+        const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
         setExpenses(sheetExpenses);
+        
+        // If no budgets in sheet, use initial. Otherwise, use sheet budgets.
+        const effectiveBudgets = sheetBudgets.length > 0 ? sheetBudgets : initialBudgets;
+        setBudgets(effectiveBudgets);
+        
+        const allCategories = [...new Set([...CATEGORIES, ...effectiveBudgets.map(b => b.category)])];
+        setCategories(allCategories);
+        
+        // Sync global categories
+        allCategories.forEach(c => addGlobalCategory(c));
+
       } catch (error) {
-        console.error("Failed to load expenses", error);
+        console.error("Failed to load data", error);
         toast({
             variant: "destructive",
             title: "Failed to load data",
-            description: "Could not fetch expenses from Google Sheets.",
+            description: "Could not fetch data from Google Sheets.",
         })
       } finally {
         setIsLoading(false);
       }
     }
-    loadExpenses();
+    loadData();
   }, [toast]);
 
-  const handleTotalBudgetChange = (newTotal: number) => {
+  const handleTotalBudgetChange = async (newTotal: number) => {
     const newTotalBudget = newTotal >= 0 ? newTotal : 0;
     const currentTotalBudget = totalBudget;
 
     const budgetsToAdjust = budgets.filter(b => b.category !== 'Credit Card');
     const creditCardBudget = budgets.find(b => b.category === 'Credit Card');
+    
+    let updatedBudgets: Budget[];
 
     if (currentTotalBudget === 0) {
       const equalShare = budgetsToAdjust.length > 0 ? newTotalBudget / budgetsToAdjust.length : 0;
-      const updatedBudgets = budgetsToAdjust.map(budget => ({
+      updatedBudgets = budgetsToAdjust.map(budget => ({
         ...budget,
         limit: equalShare,
       }));
-      if (creditCardBudget) {
-        setBudgets([...updatedBudgets, creditCardBudget]);
-      } else {
-        setBudgets(updatedBudgets);
-      }
-      return;
+    } else {
+       updatedBudgets = budgetsToAdjust.map(budget => {
+        const proportion = budget.limit / currentTotalBudget;
+        return {
+          ...budget,
+          limit: newTotalBudget * proportion,
+        };
+      });
     }
-
-    const updatedBudgets = budgetsToAdjust.map(budget => {
-      const proportion = budget.limit / currentTotalBudget;
-      return {
-        ...budget,
-        limit: newTotalBudget * proportion,
-      };
-    });
     
     if (creditCardBudget) {
-      setBudgets([...updatedBudgets, creditCardBudget]);
-    } else {
-      setBudgets(updatedBudgets);
+      updatedBudgets.push(creditCardBudget);
+    }
+    
+    setBudgets(updatedBudgets);
+    try {
+        await updateBudgets(updatedBudgets);
+    } catch(e) {
+        toast({variant: 'destructive', title: 'Error saving budgets'})
     }
   };
 
@@ -149,20 +161,20 @@ export default function BudgetsPage() {
   };
 
 
-  const handleBudgetChange = (category: string, newLimit: number) => {
-    const updatedBudgets = [...budgets];
-    const budgetIndex = updatedBudgets.findIndex(b => b.category === category);
+  const handleBudgetChange = async (category: string, newLimit: number) => {
     const value = newLimit >= 0 ? newLimit : 0;
 
-    if (budgetIndex > -1) {
-      updatedBudgets[budgetIndex].limit = value;
-    } else {
-      updatedBudgets.push({ category, limit: value });
-    }
+    const updatedBudgets = budgets.map(b => b.category === category ? {...b, limit: value} : b);
+    
     setBudgets(updatedBudgets);
+    try {
+        await updateBudgets(updatedBudgets);
+    } catch(e) {
+        toast({variant: 'destructive', title: 'Error saving budgets'})
+    }
   };
   
-  const handleAddCategory = (data: AddCategoryFormValues) => {
+  const handleAddCategory = async (data: AddCategoryFormValues) => {
     const { name, limit } = data;
     if (categories.some(c => c.toLowerCase() === name.toLowerCase())) {
         addCategoryForm.setError("name", {
@@ -174,13 +186,19 @@ export default function BudgetsPage() {
 
     addGlobalCategory(name);
     setCategories(prev => [...prev, name]);
-    setBudgets(prev => [...prev, { category: name, limit }]);
-    setAddCategoryOpen(false);
-    addCategoryForm.reset();
-    toast({
-        title: "Category Added",
-        description: `The category "${name}" with a budget of ₹${limit} has been added.`,
-    })
+    const newBudgets = [...budgets, { category: name, limit }];
+    setBudgets(newBudgets);
+    try {
+        await updateBudgets(newBudgets);
+        setAddCategoryOpen(false);
+        addCategoryForm.reset();
+        toast({
+            title: "Category Added",
+            description: `The category "${name}" with a budget of ₹${limit} has been added.`,
+        })
+    } catch (e) {
+         toast({variant: 'destructive', title: 'Error saving category'})
+    }
   };
 
   const spentPerCategory = expenses.reduce((acc, expense) => {
@@ -339,7 +357,11 @@ export default function BudgetsPage() {
                        <Input
                           type="number"
                           value={limit.toFixed(2)}
-                          onChange={(e) => handleBudgetChange(category, parseFloat(e.target.value) || 0)}
+                          onBlur={(e) => handleBudgetChange(category, parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                             const newBudgets = budgets.map(b => b.category === category ? {...b, limit: parseFloat(e.target.value) || 0} : b);
+                             setBudgets(newBudgets);
+                          }}
                           className="h-8 pl-7 text-right"
                           aria-label={`Budget for ${category}`}
                           disabled={category === 'Credit Card'}
