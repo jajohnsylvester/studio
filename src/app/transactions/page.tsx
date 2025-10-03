@@ -247,19 +247,22 @@ export default function TransactionsPage() {
                 <div className="flex flex-wrap justify-between items-start gap-4">
                     <div>
                         <CardTitle>All Transactions</CardTitle>
-                        <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
+                        <CardDescription>
+                            Your expenses for {selectedMonth} {selectedYear}. 
+                            Total: {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                        </CardDescription>
                     </div>
                     <div className="text-right space-y-2">
                         <div>
-                            <p className="text-sm text-muted-foreground">Food Total</p>
+                            <p className="text-sm text-muted-foreground">Food</p>
                             <p className="text-lg font-bold">{foodTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                         </div>
                          <div>
-                            <p className="text-sm text-muted-foreground">Credit Card Total</p>
+                            <p className="text-sm text-muted-foreground">Credit Card</p>
                             <p className="text-lg font-bold text-destructive">-{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Other Total</p>
+                            <p className="text-sm text-muted-foreground">Other</p>
                             <p className="text-lg font-bold">{otherTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                         </div>
                     </div>
