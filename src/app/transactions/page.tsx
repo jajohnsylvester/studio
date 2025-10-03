@@ -99,17 +99,17 @@ export default function TransactionsPage() {
     });
   }, [expenses, selectedMonth, selectedYear, categoryFilter, searchQuery]);
   
-  const { foodTotal, creditCardTotal, otherTotal } = useMemo(() => {
+  const { foodCardTotal, creditCardTotal, otherTotal } = useMemo(() => {
     return filteredExpenses.reduce((acc, expense) => {
-      if (expense.category === 'Food') {
-        acc.foodTotal += expense.amount;
+      if (expense.category === 'FoodCard') {
+        acc.foodCardTotal += expense.amount;
       } else if (expense.category === 'Credit Card') {
         acc.creditCardTotal += expense.amount;
       } else {
         acc.otherTotal += expense.amount;
       }
       return acc;
-    }, { foodTotal: 0, creditCardTotal: 0, otherTotal: 0 });
+    }, { foodCardTotal: 0, creditCardTotal: 0, otherTotal: 0 });
   }, [filteredExpenses]);
 
 
@@ -254,8 +254,8 @@ export default function TransactionsPage() {
                     </div>
                     <div className="text-right space-y-2">
                         <div>
-                            <p className="text-sm text-muted-foreground">Food</p>
-                            <p className="text-lg font-bold">{foodTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                            <p className="text-sm text-muted-foreground">FoodCard</p>
+                            <p className="text-lg font-bold">{foodCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                         </div>
                          <div>
                             <p className="text-sm text-muted-foreground">Credit Card</p>

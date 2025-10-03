@@ -18,6 +18,7 @@ export const CATEGORIES = [
   'Extra',
   'Petrol',
   'Credit Card',
+  'FoodCard',
   'Other',
 ] as const;
 

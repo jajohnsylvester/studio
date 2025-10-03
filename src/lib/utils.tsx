@@ -23,7 +23,8 @@ import {
   Fuel,
   CreditCard,
   Shapes,
-  Search
+  Search,
+  WalletCards
 } from 'lucide-react';
 import React from "react";
 
@@ -50,6 +51,8 @@ export const getCategoryIcon = (category: string, props?: LucideProps) => {
       return <Fuel {...iconProps} />;
     case 'Food':
       return <Utensils {...iconProps} />;
+    case 'FoodCard':
+      return <WalletCards {...iconProps} />;
     case 'Transportation':
       return <Car {...iconProps} />;
     case 'Entertainment':
