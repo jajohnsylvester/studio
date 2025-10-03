@@ -1,3 +1,4 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Expense } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils.tsx';
