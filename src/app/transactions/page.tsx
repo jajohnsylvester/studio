@@ -98,6 +98,10 @@ export default function TransactionsPage() {
       return isMonthMatch && isYearMatch && isCategoryMatch && isSearchMatch;
     });
   }, [expenses, selectedMonth, selectedYear, categoryFilter, searchQuery]);
+  
+  const totalFilteredAmount = useMemo(() => {
+    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [filteredExpenses]);
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
@@ -230,8 +234,16 @@ export default function TransactionsPage() {
 
         <Card className="mt-6">
             <CardHeader>
-                <CardTitle>All Transactions</CardTitle>
-                <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>All Transactions</CardTitle>
+                        <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Filtered Total</p>
+                        <p className="text-2xl font-bold">₹{totalFilteredAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 <ExpenseList 
