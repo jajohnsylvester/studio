@@ -99,9 +99,19 @@ export default function TransactionsPage() {
     });
   }, [expenses, selectedMonth, selectedYear, categoryFilter, searchQuery]);
   
-  const totalFilteredAmount = useMemo(() => {
-    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const { foodTotal, creditCardTotal, otherTotal } = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => {
+      if (expense.category === 'Food') {
+        acc.foodTotal += expense.amount;
+      } else if (expense.category === 'Credit Card') {
+        acc.creditCardTotal += expense.amount;
+      } else {
+        acc.otherTotal += expense.amount;
+      }
+      return acc;
+    }, { foodTotal: 0, creditCardTotal: 0, otherTotal: 0 });
   }, [filteredExpenses]);
+
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
@@ -234,14 +244,24 @@ export default function TransactionsPage() {
 
         <Card className="mt-6">
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-wrap justify-between items-start gap-4">
                     <div>
                         <CardTitle>All Transactions</CardTitle>
                         <CardDescription>A complete list of your expenses for {selectedMonth} {selectedYear}.</CardDescription>
                     </div>
-                    <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Filtered Total</p>
-                        <p className="text-2xl font-bold">{totalFilteredAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                    <div className="text-right space-y-2">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Food Total</p>
+                            <p className="text-lg font-bold">{foodTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                        </div>
+                         <div>
+                            <p className="text-sm text-muted-foreground">Credit Card Total</p>
+                            <p className="text-lg font-bold text-destructive">-{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Other Total</p>
+                            <p className="text-lg font-bold">{otherTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                        </div>
                     </div>
                 </div>
             </CardHeader>
