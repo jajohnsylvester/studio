@@ -31,6 +31,8 @@ import type { Expense } from '@/lib/types';
 import { CATEGORIES as staticCategories } from '@/lib/types';
 import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useMasterPassword } from '@/hooks/use-master-password';
+import { MasterPasswordDialog } from '@/components/master-password-dialog';
 
 
 const months = [
@@ -58,6 +60,8 @@ export default function TransactionsPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const { isPasswordSet, showPasswordDialog, passwordDialogProps } = useMasterPassword();
 
 
   const loadData = useCallback(async () => {
@@ -159,7 +163,6 @@ export default function TransactionsPage() {
             title: "Expense Deleted",
             description: `"${deletingExpense.description}" was deleted.`,
         });
-        setDeletingExpense(null);
     } catch(error) {
         console.error("Failed to delete expense", error);
         toast({
@@ -167,8 +170,31 @@ export default function TransactionsPage() {
             title: 'Error',
             description: 'Failed to delete expense from Google Sheet.',
         })
+    } finally {
+        setDeletingExpense(null);
     }
   };
+
+  function handleEditClick(expense: Expense) {
+    showPasswordDialog({
+        title: isPasswordSet ? "Enter Master Password" : "Set Master Password",
+        description: isPasswordSet 
+            ? "Please enter your master password to edit this expense."
+            : "Before editing, please set a master password for editing actions.",
+        onSuccess: () => setEditingExpense(expense),
+    });
+  }
+
+  function confirmDelete() {
+      showPasswordDialog({
+        title: isPasswordSet ? "Enter Master Password" : "Set Master Password",
+        description: isPasswordSet
+            ? `Please enter your master password to delete the expense "${deletingExpense?.description}".`
+            : "Before deleting, please set a master password for editing actions.",
+        onSuccess: handleDeleteExpense,
+        onCancel: () => setDeletingExpense(null),
+    });
+  }
   
   if (isLoading) {
       return (
@@ -179,126 +205,129 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <h1 className="text-3xl font-bold tracking-tight font-headline">
-            Transactions
-          </h1>
-          <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <>
+      <MasterPasswordDialog {...passwordDialogProps} />
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight font-headline">
+              Transactions
+            </h1>
+            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AddExpenseDialog onAddExpense={handleAddExpense} />
         </div>
-        <AddExpenseDialog onAddExpense={handleAddExpense} />
-      </div>
 
-      <Card>
-        <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Search by description..."
-                        className="pl-8"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Filter by category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                            {category}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-        </CardContent>
-      </Card>
-
-      <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-2 flex-wrap sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {months.map((month, index) => (
-            <TabsTrigger
-                key={month}
-                value={month}
-                style={selectedMonth === month ? { backgroundColor: monthColors[index], color: '#111' } : {}}
-            >
-                {month}
-            </TabsTrigger>
-            ))}
-        </TabsList>
-
-        <Card className="mt-6">
-            <CardHeader>
-                <div className="flex flex-wrap justify-between items-start gap-4">
-                    <div>
-                        <CardTitle>All Transactions</CardTitle>
-                        <CardDescription>
-                            Your expenses for {selectedMonth} {selectedYear}. 
-                            Total: {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                        </CardDescription>
-                    </div>
-                    <div className="text-right space-y-2">
-                        <div>
-                            <p className="text-sm text-muted-foreground">FoodCard</p>
-                            <p className="text-lg font-bold">{foodCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
-                        </div>
-                         <div>
-                            <p className="text-sm text-muted-foreground">Credit Card</p>
-                            <p className="text-lg font-bold text-destructive">-{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Other</p>
-                            <p className="text-lg font-bold">{otherTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
-                        </div>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <ExpenseList 
-                expenses={filteredExpenses} 
-                onEdit={(expense) => setEditingExpense(expense)}
-                onDelete={(expense) => setDeletingExpense(expense)}
-                />
-            </CardContent>
+        <Card>
+          <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                          type="search"
+                          placeholder="Search by description..."
+                          className="pl-8"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                  </div>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Filter by category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                              {category}
+                          </SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+          </CardContent>
         </Card>
-      </Tabs>
 
-      <EditExpenseDialog 
-        expense={editingExpense} 
-        isOpen={!!editingExpense} 
-        onClose={() => setEditingExpense(null)}
-        onUpdateExpense={handleUpdateExpense}
-      />
-      <AlertDialog open={!!deletingExpense} onOpenChange={() => setDeletingExpense(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the expense
-                "{deletingExpense?.description}".
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteExpense}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
+          <TabsList className="grid h-auto w-full grid-cols-2 flex-wrap sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {months.map((month, index) => (
+              <TabsTrigger
+                  key={month}
+                  value={month}
+                  style={selectedMonth === month ? { backgroundColor: monthColors[index], color: '#111' } : {}}
+              >
+                  {month}
+              </TabsTrigger>
+              ))}
+          </TabsList>
+
+          <Card className="mt-6">
+              <CardHeader>
+                  <div className="flex flex-wrap justify-between items-start gap-4">
+                      <div>
+                          <CardTitle>All Transactions</CardTitle>
+                          <CardDescription>
+                              Your expenses for {selectedMonth} {selectedYear}. 
+                              Total: {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                          </CardDescription>
+                      </div>
+                      <div className="text-right space-y-2">
+                          <div>
+                              <p className="text-sm text-muted-foreground">FoodCard</p>
+                              <p className="text-lg font-bold">{foodCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
+                          <div>
+                              <p className="text-sm text-muted-foreground">Credit Card</p>
+                              <p className="text-lg font-bold text-destructive">-{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
+                          <div>
+                              <p className="text-sm text-muted-foreground">Other</p>
+                              <p className="text-lg font-bold">{otherTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
+                      </div>
+                  </div>
+              </CardHeader>
+              <CardContent>
+                  <ExpenseList 
+                    expenses={filteredExpenses} 
+                    onEdit={handleEditClick}
+                    onDelete={(expense) => setDeletingExpense(expense)}
+                  />
+              </CardContent>
+          </Card>
+        </Tabs>
+
+        <EditExpenseDialog 
+          expense={editingExpense} 
+          isOpen={!!editingExpense} 
+          onClose={() => setEditingExpense(null)}
+          onUpdateExpense={handleUpdateExpense}
+        />
+        <AlertDialog open={!!deletingExpense} onOpenChange={() => setDeletingExpense(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the expense
+                  "{deletingExpense?.description}".
+              </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </>
   );
 }
