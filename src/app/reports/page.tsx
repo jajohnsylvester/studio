@@ -33,7 +33,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
       <div className="rounded-lg border bg-background p-2 shadow-sm">
         <div className="grid grid-cols-1 gap-2">
            <span className="font-bold" style={{ color: data.payload.fill }}>
-                {data.name}: ₹{data.value?.toLocaleString()}
+                {data.name}: {Number(data.value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
            </span>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Yearly Report: {selectedYear}</CardTitle>
-              <CardDescription>Total Spent: ₹{totalSpentForYear.toLocaleString()}</CardDescription>
+              <CardDescription>Total Spent: {totalSpentForYear.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</CardDescription>
             </CardHeader>
             <CardContent>
               {pieChartData.length > 0 ? (

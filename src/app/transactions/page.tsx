@@ -241,7 +241,7 @@ export default function TransactionsPage() {
                     </div>
                     <div className="text-right">
                         <p className="text-sm text-muted-foreground">Filtered Total</p>
-                        <p className="text-2xl font-bold">₹{totalFilteredAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p className="text-2xl font-bold">{totalFilteredAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                     </div>
                 </div>
             </CardHeader>

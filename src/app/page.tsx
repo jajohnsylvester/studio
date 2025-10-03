@@ -64,7 +64,7 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
         <div className="rounded-lg border bg-background p-2 shadow-sm">
           <div className="grid grid-cols-1 gap-2">
              <span className="font-bold" style={{ color: data.payload.fill }}>
-                  {data.name}: ₹{data.value?.toLocaleString()}
+                  {data.name}: {Number(data.value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
              </span>
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="font-medium">{budget.category}</span>
                                         <span className={budget.isOver ? "text-destructive font-semibold" : "text-muted-foreground"}>
-                                            ₹{budget.spent.toLocaleString()} / ₹{budget.amount.toLocaleString()}
+                                            {Number(budget.spent).toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })} / {Number(budget.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })}
                                         </span>
                                     </div>
                                     <Progress value={budget.progress} className={budget.isOver ? "[&>div]:bg-destructive" : ""} />

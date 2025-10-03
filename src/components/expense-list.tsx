@@ -42,9 +42,9 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               <TableCell className="font-medium">{expense.description}</TableCell>
               <TableCell className="text-right">
                  {expense.category === 'Credit Card' ? (
-                    <span className="text-destructive">-₹{expense.amount.toFixed(2)}</span>
+                    <span className="text-destructive">-{expense.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                 ) : (
-                    <span>₹{expense.amount.toFixed(2)}</span>
+                    <span>{expense.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                 )}
               </TableCell>
               <TableCell className="hidden md:table-cell text-right">
