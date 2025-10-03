@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getMonth, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
@@ -26,9 +26,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getExpenses, addExpense, updateExpense, deleteExpense } from '@/lib/sheets';
+import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { CATEGORIES as staticCategories } from '@/lib/types';
+import { Loader2, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
@@ -51,35 +54,50 @@ export default function TransactionsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [sheetExpenses, sheetCategories] = await Promise.all([getExpenses(), getCategories()]);
+      setExpenses(sheetExpenses);
+
+      const combined = [...staticCategories, ...sheetCategories];
+      const uniqueCategories = [...new Set(combined)].sort();
+      setCategories(uniqueCategories);
+
+    } catch (error) {
+      console.error("Failed to load data", error);
+      toast({
+          variant: "destructive",
+          title: "Failed to load data",
+          description: "Could not fetch data from Google Sheets.",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
-    async function loadExpenses() {
-      setIsLoading(true);
-      try {
-        const sheetExpenses = await getExpenses();
-        setExpenses(sheetExpenses);
-      } catch (error) {
-        console.error("Failed to load expenses", error);
-        toast({
-            variant: "destructive",
-            title: "Failed to load data",
-            description: "Could not fetch expenses from Google Sheets.",
-        })
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadExpenses();
-  }, [toast]);
+    loadData();
+  }, [loadData]);
 
 
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return getMonth(expenseDate) === monthIndex && getYear(expenseDate) === selectedYear;
+      const isMonthMatch = getMonth(expenseDate) === monthIndex;
+      const isYearMatch = getYear(expenseDate) === selectedYear;
+      const isCategoryMatch = categoryFilter === 'all' || expense.category === categoryFilter;
+      const isSearchMatch = !searchQuery || expense.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return isMonthMatch && isYearMatch && isCategoryMatch && isSearchMatch;
     });
-  }, [expenses, selectedMonth, selectedYear]);
+  }, [expenses, selectedMonth, selectedYear, categoryFilter, searchQuery]);
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
@@ -166,6 +184,36 @@ export default function TransactionsPage() {
         </div>
         <AddExpenseDialog onAddExpense={handleAddExpense} />
       </div>
+
+      <Card>
+        <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by description..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                            {category}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
         <TabsList className="grid h-auto w-full grid-cols-2 flex-wrap sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
