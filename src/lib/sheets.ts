@@ -154,7 +154,8 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   }
   
   const { rowIndex, range } = found;
-  const updatedRow = [expense.id, format(new Date(expense.date), 'yyyy-MM-dd'), expense.description, expense.category, expense.amount];
+  const formattedDate = format(new Date(expense.date), 'yyyy-MM-dd');
+  const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
