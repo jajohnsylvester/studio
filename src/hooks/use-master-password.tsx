@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-
-const PASSWORD_KEY = 'masterPassword';
+import { getMasterPassword, setMasterPassword as setSheetPassword } from '@/lib/sheets';
 
 type DialogOptions = {
     title: string;
@@ -15,6 +14,7 @@ type DialogOptions = {
 export function useMasterPassword() {
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
   const [isPasswordSet, setIsPasswordSet] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogOptions, setDialogOptions] = useState<DialogOptions>({
@@ -24,24 +24,31 @@ export function useMasterPassword() {
   });
 
   useEffect(() => {
-    try {
-        const item = window.localStorage.getItem(PASSWORD_KEY);
-        if (item) {
-            setStoredPassword(item);
-            setIsPasswordSet(true);
+    async function fetchPassword() {
+        setIsLoading(true);
+        try {
+            const password = await getMasterPassword();
+            if (password) {
+                setStoredPassword(password);
+                setIsPasswordSet(true);
+            }
+        } catch (error) {
+            console.error("Could not fetch master password from sheet", error);
+        } finally {
+            setIsLoading(false);
         }
-    } catch (error) {
-        console.error("Could not access localStorage", error);
     }
+    fetchPassword();
   }, []);
 
-  const setPassword = useCallback((password: string) => {
+  const setPassword = useCallback(async (password: string) => {
     try {
-        window.localStorage.setItem(PASSWORD_KEY, password);
+        await setSheetPassword(password);
         setStoredPassword(password);
         setIsPasswordSet(true);
     } catch (error) {
-        console.error("Could not access localStorage", error);
+        console.error("Could not save password to sheet", error);
+        // Here you might want to show a toast to the user
     }
   }, []);
 
@@ -74,6 +81,7 @@ export function useMasterPassword() {
 
   return {
     isPasswordSet,
+    isLoading, // Expose loading state
     setPassword,
     verifyPassword,
     showPasswordDialog,

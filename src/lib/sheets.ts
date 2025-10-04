@@ -333,3 +333,66 @@ export async function updateBudgets(budgets: Budget[]): Promise<void> {
         },
     });
 }
+
+// --- MASTER PASSWORD ---
+
+const MASTER_PASSWORD_KEY = "masterPassword";
+
+export async function getMasterPassword(): Promise<string | null> {
+    try {
+        const sheets = getSheets();
+        const range = 'Settings';
+        await ensureSheetExists(sheets, range, ['key', 'value']);
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!A:B`,
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length <= 1) {
+            return null;
+        }
+        
+        const passwordRow = rows.find(row => row[0] === MASTER_PASSWORD_KEY);
+        return passwordRow ? passwordRow[1] : null;
+    } catch (error) {
+        console.error('Error getting master password:', error);
+        return null;
+    }
+}
+
+export async function setMasterPassword(password: string): Promise<void> {
+    const sheets = getSheets();
+    const range = 'Settings';
+
+    const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `${range}!A:A`,
+    });
+    
+    const rows = response.data.values;
+    let rowIndex = rows ? rows.findIndex(row => row[0] === MASTER_PASSWORD_KEY) : -1;
+    
+    if (rowIndex !== -1) {
+        // Update existing password
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SHEET_ID,
+            range: `${range}!B${rowIndex + 1}`,
+            valueInputOption: 'RAW',
+            requestBody: {
+                values: [[password]],
+            },
+        });
+    } else {
+        // Add new password
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SHEET_ID,
+            range: range,
+            valueInputOption: 'RAW',
+            requestBody: {
+                values: [[MASTER_PASSWORD_KEY, password]],
+            },
+        });
+    }
+}
