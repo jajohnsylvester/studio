@@ -98,7 +98,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
   }, [isOpen, toast]);
 
   useEffect(() => {
-    if (isOpen && expense) {
+    if (expense) {
       form.reset({
         description: expense.description,
         amount: expense.amount,
@@ -106,7 +106,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
         date: new Date(expense.date),
       });
     }
-  }, [isOpen, expense, form]);
+  }, [expense, form]);
 
 
   async function onSubmit(data: ExpenseFormValues) {
