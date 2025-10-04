@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Expense, Budget } from '@/lib/types';
-import { ArrowDownCircle, Banknote, Landmark } from 'lucide-react';
+import { ArrowDownCircle, Banknote, Landmark, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
 type DashboardSummaryProps = {
@@ -10,13 +10,18 @@ type DashboardSummaryProps = {
 };
 
 export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
-  const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const expensesWithoutCreditCard = expenses.filter(e => e.category !== 'Credit Card');
+  const creditCardExpenses = expenses.filter(e => e.category === 'Credit Card');
+  
+  const totalSpent = expensesWithoutCreditCard.reduce((sum, expense) => sum + expense.amount, 0);
+  const creditCardSpent = creditCardExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const remainingBudget = totalBudget - totalSpent;
   const isOverBudget = remainingBudget < 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:bg-muted/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
@@ -26,6 +31,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <div className="text-2xl font-bold">
               {totalSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
+             <p className="text-xs text-muted-foreground">Excluding Credit Card payments</p>
           </CardContent>
         </Card>
        <Link href="/categories">
@@ -38,6 +44,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
                 <div className="text-2xl font-bold">
                 {totalBudget.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                 </div>
+                 <p className="text-xs text-muted-foreground">&nbsp;</p>
             </CardContent>
         </Card>
       </Link>
@@ -52,6 +59,19 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <div className={`text-2xl font-bold ${isOverBudget ? 'text-destructive' : ''}`}>
                  {Math.abs(remainingBudget).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
+            <p className="text-xs text-muted-foreground">&nbsp;</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Credit Card Spent</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+                -{creditCardSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+            </div>
+            <p className="text-xs text-muted-foreground">&nbsp;</p>
           </CardContent>
         </Card>
     </div>

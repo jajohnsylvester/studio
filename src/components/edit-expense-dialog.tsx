@@ -71,6 +71,10 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
   const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
 
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseFormSchema),
+  });
+
   useEffect(() => {
     async function loadCategories() {
         if (isOpen) {
@@ -93,17 +97,8 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
     loadCategories();
   }, [isOpen, toast]);
 
-  const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseFormSchema),
-    defaultValues: {
-      description: '',
-      amount: '' as any,
-      category: '',
-    }
-  });
-
   useEffect(() => {
-    if (expense) {
+    if (isOpen && expense) {
       form.reset({
         description: expense.description,
         amount: expense.amount,
@@ -111,7 +106,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
         date: new Date(expense.date),
       });
     }
-  }, [expense, form]);
+  }, [isOpen, expense, form]);
 
 
   async function onSubmit(data: ExpenseFormValues) {
