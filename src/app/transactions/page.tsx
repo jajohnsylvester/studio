@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getMonth, getYear } from 'date-fns';
+import { getMonth, getYear, format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
@@ -47,6 +47,14 @@ const monthColors = [
 ];
 
 const years = Array.from({ length: 2050 - 2024 + 1 }, (_, i) => 2024 + i);
+
+export type GroupedExpenses = {
+  [date: string]: {
+    expenses: Expense[];
+    total: number;
+  };
+};
+
 
 export default function TransactionsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -102,6 +110,31 @@ export default function TransactionsPage() {
       return isMonthMatch && isYearMatch && isCategoryMatch && isSearchMatch;
     });
   }, [expenses, selectedMonth, selectedYear, categoryFilter, searchQuery]);
+
+  const groupedAndSortedExpenses = useMemo(() => {
+    const grouped = filteredExpenses.reduce((acc, expense) => {
+      const date = format(new Date(expense.date), 'yyyy-MM-dd');
+      if (!acc[date]) {
+        acc[date] = { expenses: [], total: 0 };
+      }
+      acc[date].expenses.push(expense);
+      
+      const expenseAmount = expense.category === 'Credit Card' ? 0 : expense.amount;
+      acc[date].total += expenseAmount;
+      
+      return acc;
+    }, {} as GroupedExpenses);
+
+    // Sort dates
+    const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    
+    const sortedGroupedExpenses: GroupedExpenses = {};
+    for (const date of sortedDates) {
+        sortedGroupedExpenses[date] = grouped[date];
+    }
+
+    return sortedGroupedExpenses;
+  }, [filteredExpenses]);
   
   const { foodCardTotal, creditCardTotal, otherTotal } = useMemo(() => {
     return filteredExpenses.reduce((acc, expense) => {
@@ -298,7 +331,7 @@ export default function TransactionsPage() {
               </CardHeader>
               <CardContent>
                   <ExpenseList 
-                    expenses={filteredExpenses} 
+                    expenses={groupedAndSortedExpenses} 
                     onEdit={handleEditClick}
                     onDelete={(expense) => setDeletingExpense(expense)}
                   />
