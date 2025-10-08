@@ -22,6 +22,7 @@ import {
   ChartConfig,
   ChartLegend,
   ChartLegendContent,
+  CartesianGrid,
 } from '@/components/ui/chart';
 import { Progress } from '@/components/ui/progress';
 import { Pie, PieChart, Cell, Bar, BarChart, XAxis, YAxis, TooltipProps } from 'recharts';
