@@ -24,13 +24,13 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart';
 import { Progress } from '@/components/ui/progress';
-import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
+import { Pie, PieChart, Cell, Bar, BarChart, XAxis, YAxis, TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
 import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
 import type { Expense, Budget } from '@/lib/types';
-import { Loader2, Download, TrendingUp } from 'lucide-react';
-import { getMonth, getYear, format } from 'date-fns';
+import { Loader2, Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { getMonth, getYear, format, getDate } from 'date-fns';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import {
   AlertDialog,
@@ -72,6 +72,24 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
     }
     return null;
 }
+
+const CustomBarTooltip = (props: TooltipProps<ValueType, NameType>) => {
+    const { active, payload, label } = props;
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-1 gap-2">
+             <span className="font-bold">
+                  Day {label}: {Number(data.value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+             </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+};
+
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -258,6 +276,31 @@ export default function DashboardPage() {
     }).sort((a, b) => b.progress - a.progress);
   }, [budgets, pieChartData]);
 
+  const dailySpendingData = useMemo(() => {
+    const dailyTotals = filteredExpenses
+      .filter(e => e.category !== 'Credit Card')
+      .reduce((acc, expense) => {
+        const day = getDate(new Date(expense.date));
+        if (!acc[day]) {
+          acc[day] = 0;
+        }
+        acc[day] += expense.amount;
+        return acc;
+      }, {} as { [key: number]: number });
+    
+    return Object.entries(dailyTotals).map(([day, total]) => ({
+      day: parseInt(day),
+      total,
+    })).sort((a, b) => a.day - b.day);
+  }, [filteredExpenses]);
+
+  const dailyChartConfig = {
+    total: {
+      label: "Total",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig;
+
 
   if (isLoading) {
     return (
@@ -310,7 +353,7 @@ export default function DashboardPage() {
           <TabsContent key={month} value={month} className="mt-6">
             <DashboardSummary expenses={filteredExpenses} budgets={budgets} />
             
-            <div className="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-5">
               <Card className="lg:col-span-3">
                 <CardHeader>
                     <CardTitle>Budget Progress</CardTitle>
@@ -341,19 +384,6 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
               <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Recent Transactions</CardTitle>
-                  <CardDescription>A list of your most recent expenses for {month} {selectedYear}.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ExpenseList 
-                    expenses={filteredExpenses.slice(0, 5)} 
-                    onEdit={(expense) => setEditingExpense(expense)}
-                    onDelete={(expense) => setDeletingExpense(expense)}
-                  />
-                </CardContent>
-              </Card>
-              <Card>
                   <CardHeader>
                       <CardTitle>Spending by Category</CardTitle>
                       <CardDescription>A breakdown of your expenses for {month} {selectedYear}.</CardDescription>
@@ -375,6 +405,57 @@ export default function DashboardPage() {
                           <div className="flex h-[350px] items-center justify-center text-muted-foreground">No spending data available.</div>
                       )}
                   </CardContent>
+              </Card>
+              
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <CardTitle>Daily Spending</CardTitle>
+                  <CardDescription>Your daily expense breakdown for {month} {selectedYear}.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {dailySpendingData.length > 0 ? (
+                    <ChartContainer config={dailyChartConfig} className="h-[250px] w-full">
+                      <BarChart accessibilityLayer data={dailySpendingData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="day"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={(value) => `${value}`}
+                        />
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={10}
+                          width={80}
+                          tickFormatter={(value) => `₹${Number(value) / 1000}k`}
+                        />
+                        <ChartTooltip cursor={false} content={<CustomBarTooltip />} />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                      </BarChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="flex h-[250px] flex-col items-center justify-center text-center">
+                        <TrendingDown className="h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 text-muted-foreground">No daily spending data for this period.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Recent Transactions</CardTitle>
+                  <CardDescription>Your last 5 expenses for {month} {selectedYear}.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ExpenseList 
+                    expenses={filteredExpenses.slice(0, 5)} 
+                    onEdit={(expense) => setEditingExpense(expense)}
+                    onDelete={(expense) => setDeletingExpense(expense)}
+                  />
+                </CardContent>
               </Card>
             </div>
           </TabsContent>
@@ -404,3 +485,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
