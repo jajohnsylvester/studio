@@ -43,6 +43,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const months = [
   "January", "February", "March", "April", "May", "June", 
@@ -295,13 +297,6 @@ export default function DashboardPage() {
     })).sort((a, b) => a.day - b.day);
   }, [filteredExpenses]);
 
-  const dailyChartConfig = {
-    total: {
-      label: "Total",
-      color: "hsl(var(--chart-1))",
-    },
-  } satisfies ChartConfig;
-
 
   if (isLoading) {
     return (
@@ -415,27 +410,24 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   {dailySpendingData.length > 0 ? (
-                    <ChartContainer config={dailyChartConfig} className="h-[250px] w-full">
-                      <BarChart accessibilityLayer data={dailySpendingData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="day"
-                          tickLine={false}
-                          tickMargin={10}
-                          axisLine={false}
-                          tickFormatter={(value) => `${value}`}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={10}
-                          width={80}
-                          tickFormatter={(value) => `₹${Number(value) / 1000}k`}
-                        />
-                        <ChartTooltip cursor={false} content={<CustomBarTooltip />} />
-                        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
-                      </BarChart>
-                    </ChartContainer>
+                    <ScrollArea className="h-[250px] w-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Day</TableHead>
+                            <TableHead className="text-right">Total Spent</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {dailySpendingData.map(({ day, total }) => (
+                            <TableRow key={day}>
+                              <TableCell className="font-medium">{format(new Date(selectedYear, months.indexOf(month), day), "do MMMM")}</TableCell>
+                              <TableCell className="text-right">{total.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
                   ) : (
                     <div className="flex h-[250px] flex-col items-center justify-center text-center">
                         <TrendingDown className="h-12 w-12 text-muted-foreground" />
@@ -486,5 +478,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
