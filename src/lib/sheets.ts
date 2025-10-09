@@ -117,7 +117,7 @@ export async function getExpenses(): Promise<Expense[]> {
 export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
   const range = 'Transactions';
-  const newId = new Date().toISOString() + Math.random();
+  const newId = new Date().getTime().toString();
   const newExpense: Expense = { ...expense, id: newId };
   const newRow = [newExpense.id, format(new Date(newExpense.date), 'yyyy-MM-dd'), newExpense.description, newExpense.category, newExpense.amount];
 
