@@ -412,3 +412,5 @@ export async function setMasterPassword(password: string): Promise<void> {
         });
     }
 }
+
+    
