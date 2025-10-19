@@ -24,7 +24,8 @@ import {
   CreditCard,
   Shapes,
   Search,
-  WalletCards
+  WalletCards,
+  CheckCircle2
 } from 'lucide-react';
 import React from "react";
 

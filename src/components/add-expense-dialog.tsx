@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from './ui/textarea';
 import { getCategories } from '@/lib/sheets';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from './ui/checkbox';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -56,6 +57,7 @@ const expenseFormSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
   }),
+  paid: z.boolean().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
@@ -69,6 +71,19 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseFormSchema),
+    defaultValues: {
+      description: '',
+      amount: '' as any,
+      category: '',
+      date: new Date(),
+      paid: false,
+    },
+  });
+
+  const categoryValue = form.watch('category');
 
   useEffect(() => {
     async function loadCategories() {
@@ -92,15 +107,11 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     loadCategories();
   }, [open, toast]);
 
-  const form = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseFormSchema),
-    defaultValues: {
-      description: '',
-      amount: '' as any,
-      category: '',
-      date: new Date(),
-    },
-  });
+  useEffect(() => {
+    if (categoryValue !== 'Credit Card') {
+        form.setValue('paid', false);
+    }
+  }, [categoryValue, form]);
 
   async function onSubmit(data: ExpenseFormValues) {
     setIsSubmitting(true);
@@ -110,6 +121,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
         amount: data.amount,
         category: data.category,
         date: data.date.toISOString(),
+        paid: data.category === 'Credit Card' ? data.paid : undefined,
       };
       
       await onAddExpense(newExpenseData);
@@ -197,6 +209,27 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                 </FormItem>
               )}
             />
+             {categoryValue === 'Credit Card' && (
+              <FormField
+                control={form.control}
+                name="paid"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Mark as Paid
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="date"

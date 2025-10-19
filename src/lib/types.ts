@@ -5,6 +5,7 @@ export type Expense = {
   amount: number;
   category: string;
   date: string; // Using string for simplicity, can be parsed to Date
+  paid?: boolean;
 };
 
 // This list contains default categories that cannot be deleted.

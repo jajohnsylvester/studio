@@ -68,7 +68,7 @@ export async function getExpenses(): Promise<Expense[]> {
   try {
     const sheets = getSheets();
     const range = 'Transactions';
-    await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount']);
+    await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
     
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
@@ -86,11 +86,11 @@ export async function getExpenses(): Promise<Expense[]> {
     const descriptionIndex = headers.indexOf('description');
     const categoryIndex = headers.indexOf('category');
     const amountIndex = headers.indexOf('amount');
+    const paidIndex = headers.indexOf('paid');
     
-    if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex].includes(-1)) {
-        console.warn("One or more headers (id, date, description, category, amount) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
+    if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex, paidIndex].includes(-1)) {
+        console.warn("One or more headers (id, date, description, category, amount, paid) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
     }
-
 
     return rows.slice(1).map((row, index): Expense | null => {
         if(row.every(cell => !cell)) return null; // Skip empty rows
@@ -104,6 +104,7 @@ export async function getExpenses(): Promise<Expense[]> {
             description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
             category: row[categoryIndex > -1 ? categoryIndex : 3] || 'Other',
             amount: amount,
+            paid: row[paidIndex > -1 ? paidIndex : 5] === 'TRUE',
         }
     }).filter((e): e is Expense => e !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -114,12 +115,25 @@ export async function getExpenses(): Promise<Expense[]> {
   }
 }
 
-export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
+export async function addExpense(expense: Omit<Expense, 'id' | 'paid'> & { paid?: boolean }): Promise<Expense> {
   const sheets = getSheets();
   const range = 'Transactions';
   const newId = new Date().getTime().toString();
-  const newExpense: Expense = { ...expense, id: newId };
-  const newRow = [newExpense.id, format(new Date(newExpense.date), 'yyyy-MM-dd'), newExpense.description, newExpense.category, newExpense.amount];
+  
+  const newExpense: Expense = { 
+    ...expense, 
+    id: newId, 
+    paid: expense.category === 'Credit Card' ? !!expense.paid : undefined 
+  };
+  
+  const newRow = [
+    newExpense.id, 
+    format(new Date(newExpense.date), 'yyyy-MM-dd'), 
+    newExpense.description, 
+    newExpense.category, 
+    newExpense.amount,
+    newExpense.paid === true ? 'TRUE' : (newExpense.paid === false ? 'FALSE' : '')
+  ];
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
@@ -155,11 +169,12 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   
   const { rowIndex, range } = found;
   const formattedDate = format(new Date(expense.date), 'yyyy-MM-dd');
-  const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount];
+  const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'TRUE' : 'FALSE') : '';
+  const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${range}!A${rowIndex}:E${rowIndex}`,
+    range: `${range}!A${rowIndex}:F${rowIndex}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: [updatedRow],

@@ -8,7 +8,7 @@ import { getCategoryIcon } from '@/lib/utils.tsx';
 import { format } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Button } from './ui/button';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { type GroupedExpenses } from '@/app/transactions/page';
 
 type ExpenseListProps = {
@@ -42,7 +42,14 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
             <span className="hidden sm:inline">{expense.category}</span>
             </div>
         </TableCell>
-        <TableCell className="font-medium">{expense.description}</TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            {expense.description}
+            {expense.category === 'Credit Card' && expense.paid && (
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+            )}
+          </div>
+        </TableCell>
         <TableCell className="text-right">
             {expense.category === 'Credit Card' ? (
                 <span className="text-destructive">{expense.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
