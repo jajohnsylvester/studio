@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Button } from './ui/button';
 import { MoreHorizontal, Pencil, Trash2, CheckCircle2, CircleOff } from 'lucide-react';
 import { type GroupedExpenses } from '@/app/transactions/page';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type ExpenseListProps = {
     expenses: GroupedExpenses | Expense[];
@@ -46,17 +47,26 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
         <TableCell className="font-medium">
           <div className="flex items-center gap-2">
             {expense.description}
-            {expense.category === 'Credit Card' && expense.paid && (
-                <CheckCircle2 className="h-4 w-4 text-green-500" title="Paid" />
+            {expense.category === 'Credit Card' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {expense.paid ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <CircleOff className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{expense.paid ? 'Paid' : 'Not Paid'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </TableCell>
         <TableCell className="text-right">
-            {expense.category === 'Credit Card' ? (
-                <span className="text-destructive">{expense.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-            ) : (
-                <span>{expense.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-            )}
+            <span>{Math.abs(expense.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
         </TableCell>
         <TableCell className="hidden md:table-cell text-right">
             {format(new Date(expense.date), 'PP')}
@@ -82,9 +92,9 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
                                     <><CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Paid</>
                                 )}
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
                         </>
                     )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onDelete(expense)} className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                     </DropdownMenuItem>
