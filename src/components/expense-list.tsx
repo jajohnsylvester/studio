@@ -46,7 +46,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
         </TableCell>
         <TableCell className="font-medium">
           <div className="flex items-center gap-2">
-            {expense.description}
+            <span className={expense.category === 'Credit Card' ? "text-rose-700 font-semibold" : ""}>{expense.description}</span>
             {expense.category === 'Credit Card' && (
               <TooltipProvider>
                 <Tooltip>
@@ -54,7 +54,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
                     {expense.paid ? (
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
                     ) : (
-                      <CircleOff className="h-4 w-4 text-muted-foreground" />
+                      <CircleOff className="h-4 w-4 text-destructive" />
                     )}
                   </TooltipTrigger>
                   <TooltipContent>
