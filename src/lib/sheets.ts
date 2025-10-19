@@ -132,7 +132,7 @@ export async function addExpense(expense: Omit<Expense, 'id' | 'paid'> & { paid?
     newExpense.description, 
     newExpense.category, 
     newExpense.amount,
-    newExpense.paid === true ? 'TRUE' : (newExpense.paid === false ? 'FALSE' : '')
+    newExpense.category === 'Credit Card' ? (newExpense.paid ? 'TRUE' : 'FALSE') : ''
   ];
 
   await sheets.spreadsheets.values.append({
@@ -412,5 +412,3 @@ export async function setMasterPassword(password: string): Promise<void> {
         });
     }
 }
-
-    
