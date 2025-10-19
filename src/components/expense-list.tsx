@@ -6,15 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Expense } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils.tsx';
 import { format } from 'date-fns';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Button } from './ui/button';
-import { MoreHorizontal, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, CheckCircle2, CircleOff } from 'lucide-react';
 import { type GroupedExpenses } from '@/app/transactions/page';
 
 type ExpenseListProps = {
     expenses: GroupedExpenses | Expense[];
     onEdit: (expense: Expense) => void;
     onDelete: (expense: Expense) => void;
+    onTogglePaid?: (expense: Expense) => void;
 };
 
 
@@ -32,7 +33,7 @@ function isGrouped(expenses: GroupedExpenses | Expense[]): expenses is GroupedEx
 }
 
 
-export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
+export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: ExpenseListProps) {
 
   const renderExpenseRow = (expense: Expense) => (
     <TableRow key={expense.id}>
@@ -46,7 +47,7 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
           <div className="flex items-center gap-2">
             {expense.description}
             {expense.category === 'Credit Card' && expense.paid && (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-green-500" title="Paid" />
             )}
           </div>
         </TableCell>
@@ -71,6 +72,19 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
                     <DropdownMenuItem onClick={() => onEdit(expense)}>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                     </DropdownMenuItem>
+                    {onTogglePaid && expense.category === 'Credit Card' && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onTogglePaid(expense)}>
+                                {expense.paid ? (
+                                    <><CircleOff className="mr-2 h-4 w-4" /> Mark as Unpaid</>
+                                ) : (
+                                    <><CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Paid</>
+                                )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
                     <DropdownMenuItem onClick={() => onDelete(expense)} className="text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                     </DropdownMenuItem>

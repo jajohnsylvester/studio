@@ -70,6 +70,7 @@ export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const { isPasswordSet, showPasswordDialog, passwordDialogProps } = useMasterPassword();
+  const [expenseToToggle, setExpenseToToggle] = useState<Expense | null>(null);
 
 
   const loadData = useCallback(async () => {
@@ -140,9 +141,9 @@ export default function TransactionsPage() {
     return filteredExpenses.reduce((acc, expense) => {
       if (expense.category === 'FoodCard') {
         acc.foodCardTotal += expense.amount;
-      } else if (expense.category === 'Credit Card') {
+      } else if (expense.category === 'Credit Card' && !expense.paid) {
         acc.creditCardTotal += expense.amount;
-      } else {
+      } else if (expense.category !== 'Credit Card') {
         acc.otherTotal += expense.amount;
       }
       return acc;
@@ -229,6 +230,42 @@ export default function TransactionsPage() {
     });
   }
   
+  const handleTogglePaidStatus = async () => {
+      if (!expenseToToggle) return;
+      
+      const updatedExpense = { ...expenseToToggle, paid: !expenseToToggle.paid };
+      
+      try {
+        await updateExpense(updatedExpense);
+        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        toast({
+            title: `Status Updated`,
+            description: `Expense marked as ${updatedExpense.paid ? 'Paid' : 'Unpaid'}.`,
+        });
+    } catch (error) {
+        console.error("Failed to update paid status", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update expense status.',
+        })
+    } finally {
+        setExpenseToToggle(null);
+    }
+  };
+
+  function onTogglePaidClick(expense: Expense) {
+      setExpenseToToggle(expense);
+      showPasswordDialog({
+        title: isPasswordSet ? "Enter Master Password" : "Set Master Password",
+        description: isPasswordSet 
+            ? `Please enter your master password to change the paid status.`
+            : "Before changing status, please set a master password for editing actions.",
+        onSuccess: handleTogglePaidStatus,
+        onCancel: () => setExpenseToToggle(null),
+      });
+  }
+
   if (isLoading) {
       return (
           <div className="flex justify-center items-center h-screen">
@@ -319,7 +356,7 @@ export default function TransactionsPage() {
                               <p className="text-lg font-bold">{foodCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                           </div>
                           <div>
-                              <p className="text-sm text-muted-foreground">Credit Card</p>
+                              <p className="text-sm text-muted-foreground">Unpaid Credit Card</p>
                               <p className="text-lg font-bold text-destructive">{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                           </div>
                           <div>
@@ -334,6 +371,7 @@ export default function TransactionsPage() {
                     expenses={groupedAndSortedExpenses} 
                     onEdit={handleEditClick}
                     onDelete={(expense) => setDeletingExpense(expense)}
+                    onTogglePaid={onTogglePaidClick}
                   />
               </CardContent>
           </Card>
