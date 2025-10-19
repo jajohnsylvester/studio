@@ -320,7 +320,7 @@ export default function TransactionsPage() {
                           </div>
                           <div>
                               <p className="text-sm text-muted-foreground">Credit Card</p>
-                              <p className="text-lg font-bold text-destructive">-{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                              <p className="text-lg font-bold text-destructive">{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                           </div>
                           <div>
                               <p className="text-sm text-muted-foreground">Other</p>

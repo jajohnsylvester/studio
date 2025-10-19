@@ -69,7 +69,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-                -{creditCardSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                {creditCardSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
             <p className="text-xs text-muted-foreground">&nbsp;</p>
           </CardContent>
