@@ -394,7 +394,7 @@ export default function DashboardPage() {
                               <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
                               ))}
                           </Pie>
-                          <ChartLegend content={<ChartLegendContent />} className="-mt-4" />
+                          <ChartLegend content={<ChartLegendContent className="flex-wrap" />} className="-mt-4" />
                           </PieChart>
                       </ChartContainer>
                       ) : (
