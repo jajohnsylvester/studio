@@ -100,14 +100,16 @@ export async function getExpenses(): Promise<Expense[]> {
         
         const amount = parseFloat(row[amountIndex > -1 ? amountIndex : 4]);
         if(isNaN(amount)) return null;
+        
+        const category = row[categoryIndex > -1 ? categoryIndex : 3] || 'Other';
 
         return {
             id: row[idIndex > -1 ? idIndex : 0] || (new Date().getTime() + index).toString(),
             date: row[dateIndex > -1 ? dateIndex : 1] ? new Date(row[dateIndex > -1 ? dateIndex : 1]).toISOString() : new Date().toISOString(),
             description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
-            category: row[categoryIndex > -1 ? categoryIndex : 3] || 'Other',
+            category: category,
             amount: amount,
-            paid: paidIndex > -1 ? row[paidIndex] === 'TRUE' : undefined,
+            paid: category === 'Credit Card' ? (paidIndex > -1 ? row[paidIndex] === 'TRUE' : false) : undefined,
         }
     }).filter((e): e is Expense => e !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -118,7 +120,7 @@ export async function getExpenses(): Promise<Expense[]> {
   }
 }
 
-export async function addExpense(expense: Omit<Expense, 'id' | 'paid'> & { paid?: boolean }): Promise<Expense> {
+export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
   const range = 'Transactions';
   
@@ -126,12 +128,15 @@ export async function addExpense(expense: Omit<Expense, 'id' | 'paid'> & { paid?
     spreadsheetId: SHEET_ID,
     range: `${range}!A:A`,
   });
-  const newId = (response.data.values ? response.data.values.length : 0) + 1;
+
+  const existingIds = response.data.values ? response.data.values.flat().map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
+  const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+  const newId = maxId + 1;
 
   const newExpense: Expense = { 
     ...expense, 
-    id: newId.toString(), 
-    paid: expense.category === 'Credit Card' ? !!expense.paid : undefined 
+    id: newId.toString(),
+    paid: expense.category === 'Credit Card' ? !!expense.paid : undefined
   };
   
   const newRow = [

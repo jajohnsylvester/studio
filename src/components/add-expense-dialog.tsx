@@ -57,7 +57,7 @@ const expenseFormSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
   }),
-  paid: z.boolean().optional(),
+  paid: z.boolean().default(false).optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;
@@ -116,7 +116,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
   async function onSubmit(data: ExpenseFormValues) {
     setIsSubmitting(true);
     try {
-      const newExpenseData = {
+      const newExpenseData: Omit<Expense, 'id'> = {
         description: data.description,
         amount: data.amount,
         category: data.category,
