@@ -88,8 +88,11 @@ export async function getExpenses(): Promise<Expense[]> {
     const amountIndex = headers.indexOf('amount');
     const paidIndex = headers.indexOf('paid');
     
-    if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex, paidIndex].includes(-1)) {
-        console.warn("One or more headers (id, date, description, category, amount, paid) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
+    if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex].includes(-1)) {
+        console.warn("One or more headers (id, date, description, category, amount) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
+    }
+    if (paidIndex === -1) {
+        console.warn("The 'paid' header is missing in the Transactions Sheet. Paid status for credit card transactions will not be loaded. Please add the 'paid' header.");
     }
 
     return rows.slice(1).map((row, index): Expense | null => {
@@ -99,12 +102,12 @@ export async function getExpenses(): Promise<Expense[]> {
         if(isNaN(amount)) return null;
 
         return {
-            id: row[idIndex > -1 ? idIndex : 0] || (index + 2).toString(),
+            id: row[idIndex > -1 ? idIndex : 0] || (new Date().getTime() + index).toString(),
             date: row[dateIndex > -1 ? dateIndex : 1] ? new Date(row[dateIndex > -1 ? dateIndex : 1]).toISOString() : new Date().toISOString(),
             description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
             category: row[categoryIndex > -1 ? categoryIndex : 3] || 'Other',
             amount: amount,
-            paid: row[paidIndex > -1 ? paidIndex : 5] === 'TRUE',
+            paid: paidIndex > -1 ? row[paidIndex] === 'TRUE' : undefined,
         }
     }).filter((e): e is Expense => e !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -118,11 +121,16 @@ export async function getExpenses(): Promise<Expense[]> {
 export async function addExpense(expense: Omit<Expense, 'id' | 'paid'> & { paid?: boolean }): Promise<Expense> {
   const sheets = getSheets();
   const range = 'Transactions';
-  const newId = new Date().getTime().toString();
   
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${range}!A:A`,
+  });
+  const newId = (response.data.values ? response.data.values.length : 0) + 1;
+
   const newExpense: Expense = { 
     ...expense, 
-    id: newId, 
+    id: newId.toString(), 
     paid: expense.category === 'Credit Card' ? !!expense.paid : undefined 
   };
   
