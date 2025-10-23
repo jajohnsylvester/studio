@@ -151,7 +151,7 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
     paid: expense.category === 'Credit Card' ? !!expense.paid : undefined
   };
   
-  const formattedDate = format(toZonedTime(parseISO(newExpense.date), TIME_ZONE), 'yyyy-MM-dd');
+  const formattedDate = format(toZonedTime(new Date(newExpense.date), TIME_ZONE), 'yyyy-MM-dd');
 
   const newRow = [
     newExpense.id, 
@@ -196,7 +196,7 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   
   const { rowIndex, range } = found;
   
-  const formattedDate = format(toZonedTime(parseISO(expense.date), TIME_ZONE), 'yyyy-MM-dd');
+  const formattedDate = format(toZonedTime(new Date(expense.date), TIME_ZONE), 'yyyy-MM-dd');
   const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'TRUE' : 'FALSE') : '';
   const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
 

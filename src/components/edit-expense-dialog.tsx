@@ -105,7 +105,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
   }, [isOpen, toast]);
 
   useEffect(() => {
-    if (expense) {
+    if (expense && isOpen) {
       form.reset({
         description: expense.description,
         amount: expense.amount,

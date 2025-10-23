@@ -160,7 +160,7 @@ export default function TransactionsPage() {
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
       await addExpense(newExpenseData);
-      await loadData();
+      await loadData(); // Reload data
       toast({
         title: 'Expense Added',
         description: `A new expense was added.`,
@@ -178,7 +178,7 @@ export default function TransactionsPage() {
   const handleUpdateExpense = async (updatedExpense: Expense) => {
      try {
         await updateExpense(updatedExpense);
-        await loadData();
+        await loadData(); // Reload data
         setEditingExpense(null);
         toast({
             title: 'Expense Updated',
@@ -198,7 +198,7 @@ export default function TransactionsPage() {
     if (!deletingExpense) return;
     try {
         await deleteExpense(deletingExpense.id);
-        await loadData();
+        await loadData(); // Reload data
         toast({
             title: "Expense Deleted",
             description: `"${deletingExpense.description}" was deleted.`,
