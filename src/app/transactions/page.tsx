@@ -159,11 +159,11 @@ export default function TransactionsPage() {
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
-      const newExpense = await addExpense(newExpenseData);
-      setExpenses((prevExpenses) => [newExpense, ...prevExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      await addExpense(newExpenseData);
+      await loadData();
       toast({
         title: 'Expense Added',
-        description: `"${newExpense.description}" was added.`,
+        description: `A new expense was added.`,
       });
     } catch (error) {
         console.error("Failed to add expense", error);
@@ -178,7 +178,7 @@ export default function TransactionsPage() {
   const handleUpdateExpense = async (updatedExpense: Expense) => {
      try {
         await updateExpense(updatedExpense);
-        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        await loadData();
         setEditingExpense(null);
         toast({
             title: 'Expense Updated',
@@ -198,7 +198,7 @@ export default function TransactionsPage() {
     if (!deletingExpense) return;
     try {
         await deleteExpense(deletingExpense.id);
-        setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
+        await loadData();
         toast({
             title: "Expense Deleted",
             description: `"${deletingExpense.description}" was deleted.`,
@@ -243,7 +243,7 @@ export default function TransactionsPage() {
       
       try {
         await updateExpense(updatedExpense);
-        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        await loadData(); // Re-fetch data to ensure UI is in sync
         toast({
             title: `Status Updated`,
             description: `Expense marked as ${updatedExpense.paid ? 'Paid' : 'Unpaid'}.`,
