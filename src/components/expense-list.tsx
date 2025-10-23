@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { Expense } from '@/lib/types';
 import { getCategoryIcon } from '@/lib/utils.tsx';
 import { format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { MoreHorizontal, Pencil, Trash2, CheckCircle2, CircleOff } from 'lucide-react';
@@ -76,7 +76,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
             <span>{Math.abs(expense.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
         </TableCell>
         <TableCell className="hidden md:table-cell text-right">
-            {format(utcToZonedTime(new Date(expense.date), TIME_ZONE), 'PP')}
+            {format(toZonedTime(new Date(expense.date), TIME_ZONE), 'PP')}
         </TableCell>
         <TableCell className="text-right">
             <DropdownMenu>
@@ -135,7 +135,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
                     <TableBody>
                         <TableRow className="bg-muted/50 hover:bg-muted">
                             <TableCell colSpan={2} className="font-bold text-primary">
-                                {format(utcToZonedTime(new Date(date), TIME_ZONE), 'EEEE, MMMM d, yyyy')}
+                                {format(toZonedTime(new Date(date), TIME_ZONE), 'EEEE, MMMM d, yyyy')}
                             </TableCell>
                             <TableCell colSpan={3} className="text-right font-bold text-primary">
                                 Daily Total: {total.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
@@ -156,5 +156,3 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
     </div>
   );
 }
-
-    

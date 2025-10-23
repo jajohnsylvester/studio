@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -110,7 +110,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
         description: expense.description,
         amount: expense.amount,
         category: expense.category,
-        date: utcToZonedTime(new Date(expense.date), TIME_ZONE),
+        date: toZonedTime(new Date(expense.date), TIME_ZONE),
         paid: expense.paid || false,
       });
     }
@@ -285,5 +285,3 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
     </Dialog>
   );
 }
-
-    

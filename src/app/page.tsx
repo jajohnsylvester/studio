@@ -32,7 +32,7 @@ import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } fro
 import type { Expense, Budget } from '@/lib/types';
 import { Loader2, Download, TrendingUp, TrendingDown } from 'lucide-react';
 import { getMonth, getYear, format, getDate } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
 import {
   AlertDialog,
@@ -133,7 +133,7 @@ export default function DashboardPage() {
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
     return expenses.filter(expense => {
-      const expenseDate = utcToZonedTime(new Date(expense.date), TIME_ZONE);
+      const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
       return getMonth(expenseDate) === monthIndex && getYear(expenseDate) === selectedYear;
     });
   }, [expenses, selectedMonth, selectedYear]);
@@ -211,7 +211,7 @@ export default function DashboardPage() {
       ...filteredExpenses.map(e => 
         [
           e.id, 
-          format(utcToZonedTime(new Date(e.date), TIME_ZONE), "yyyy-MM-dd"), 
+          format(toZonedTime(new Date(e.date), TIME_ZONE), "yyyy-MM-dd"), 
           `"${e.description.replace(/"/g, '""')}"`, // Handle quotes
           e.category, 
           e.amount
@@ -286,7 +286,7 @@ export default function DashboardPage() {
     const dailyTotals = filteredExpenses
       .filter(e => e.category !== 'Credit Card')
       .reduce((acc, expense) => {
-        const day = getDate(utcToZonedTime(new Date(expense.date), TIME_ZONE));
+        const day = getDate(toZonedTime(new Date(expense.date), TIME_ZONE));
         if (!acc[day]) {
           acc[day] = 0;
         }
@@ -424,7 +424,7 @@ export default function DashboardPage() {
                         <TableBody>
                           {dailySpendingData.map(({ day, total }) => (
                             <TableRow key={day}>
-                              <TableCell className="font-medium">{format(utcToZonedTime(new Date(selectedYear, months.indexOf(month), day), TIME_ZONE), "do MMMM")}</TableCell>
+                              <TableCell className="font-medium">{format(toZonedTime(new Date(selectedYear, months.indexOf(month), day), TIME_ZONE), "do MMMM")}</TableCell>
                               <TableCell className="text-right">{total.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</TableCell>
                             </TableRow>
                           ))}
@@ -481,5 +481,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

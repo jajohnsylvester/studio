@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { getMonth, getYear, format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { useToast } from '@/hooks/use-toast';
 import { AddExpenseDialog } from '@/components/add-expense-dialog';
 import { EditExpenseDialog } from '@/components/edit-expense-dialog';
@@ -105,7 +105,7 @@ export default function TransactionsPage() {
   const filteredExpenses = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
     return expenses.filter(expense => {
-      const expenseDate = utcToZonedTime(new Date(expense.date), TIME_ZONE);
+      const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
       const isMonthMatch = getMonth(expenseDate) === monthIndex;
       const isYearMatch = getYear(expenseDate) === selectedYear;
       const isCategoryMatch = categoryFilter === 'all' || expense.category === categoryFilter;
@@ -116,7 +116,7 @@ export default function TransactionsPage() {
 
   const groupedAndSortedExpenses = useMemo(() => {
     const grouped = filteredExpenses.reduce((acc, expense) => {
-      const date = format(utcToZonedTime(new Date(expense.date), TIME_ZONE), 'yyyy-MM-dd');
+      const date = format(toZonedTime(new Date(expense.date), TIME_ZONE), 'yyyy-MM-dd');
       if (!acc[date]) {
         acc[date] = { expenses: [], total: 0 };
       }
@@ -404,5 +404,3 @@ export default function TransactionsPage() {
     </>
   );
 }
-
-    

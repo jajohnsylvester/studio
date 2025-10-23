@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -250,7 +250,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                           )}
                         >
                           {field.value ? (
-                            format(utcToZonedTime(field.value, TIME_ZONE), "PPP")
+                            format(field.value, "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -286,5 +286,3 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     </Dialog>
   );
 }
-
-    
