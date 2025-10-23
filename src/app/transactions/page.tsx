@@ -30,7 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { CATEGORIES as staticCategories } from '@/lib/types';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useMasterPassword } from '@/hooks/use-master-password';
 import { MasterPasswordDialog } from '@/components/master-password-dialog';
@@ -139,17 +139,21 @@ export default function TransactionsPage() {
     return sortedGroupedExpenses;
   }, [filteredExpenses]);
   
-  const { foodCardTotal, creditCardTotal, otherTotal } = useMemo(() => {
+  const { foodCardTotal, creditCardTotal, otherTotal, paidCreditCardTotal } = useMemo(() => {
     return filteredExpenses.reduce((acc, expense) => {
       if (expense.category === 'FoodCard') {
         acc.foodCardTotal += expense.amount;
-      } else if (expense.category === 'Credit Card' && !expense.paid) {
-        acc.creditCardTotal += expense.amount;
-      } else if (expense.category !== 'Credit Card') {
+      } else if (expense.category === 'Credit Card') {
+          if(!expense.paid) {
+            acc.creditCardTotal += expense.amount;
+          } else {
+            acc.paidCreditCardTotal += expense.amount;
+          }
+      } else {
         acc.otherTotal += expense.amount;
       }
       return acc;
-    }, { foodCardTotal: 0, creditCardTotal: 0, otherTotal: 0 });
+    }, { foodCardTotal: 0, creditCardTotal: 0, otherTotal: 0, paidCreditCardTotal: 0 });
   }, [filteredExpenses]);
 
 
@@ -352,18 +356,22 @@ export default function TransactionsPage() {
                               Total: {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                           </CardDescription>
                       </div>
-                      <div className="text-right space-y-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-right">
                           <div>
                               <p className="text-sm text-muted-foreground">FoodCard</p>
                               <p className="text-lg font-bold">{foodCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                           </div>
                           <div>
-                              <p className="text-sm text-muted-foreground">Unpaid Credit Card</p>
-                              <p className="text-lg font-bold text-destructive">{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
-                          </div>
-                          <div>
                               <p className="text-sm text-muted-foreground">Other</p>
                               <p className="text-lg font-bold">{otherTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
+                          <div>
+                              <p className="text-sm text-muted-foreground">Unpaid CC</p>
+                              <p className="text-lg font-bold text-destructive">{creditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                          </div>
+                           <div>
+                              <p className="text-sm text-muted-foreground">Paid CC</p>
+                              <p className="text-lg font-bold text-green-600">{paidCreditCardTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
                           </div>
                       </div>
                   </div>
