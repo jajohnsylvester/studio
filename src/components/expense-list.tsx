@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { MoreHorizontal, Pencil, Trash2, CheckCircle2, CircleOff } from 'lucide-react';
 import { type GroupedExpenses } from '@/app/transactions/page';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { cn } from '@/lib/utils';
 
 type ExpenseListProps = {
     expenses: GroupedExpenses | Expense[];
@@ -46,7 +47,10 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
         </TableCell>
         <TableCell className="font-medium">
           <div className="flex items-center gap-2">
-            <span className={expense.category === 'Credit Card' ? "text-rose-700 font-semibold" : ""}>{expense.description}</span>
+            <span className={cn("font-semibold", {
+                "text-rose-700": expense.category === 'Credit Card' && !expense.paid,
+                "text-green-600": expense.category === 'Credit Card' && expense.paid,
+            })}>{expense.description}</span>
             {expense.category === 'Credit Card' && (
               <TooltipProvider>
                 <Tooltip>
