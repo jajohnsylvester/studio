@@ -4,8 +4,10 @@
 import { google } from 'googleapis';
 import type { Expense, Budget } from './types';
 import { format, parseISO } from 'date-fns';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
+const TIME_ZONE = 'Asia/Kolkata';
 
 const getAuth = () => {
   if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY || !process.env.GOOGLE_SHEETS_SHEET_ID) {
@@ -106,9 +108,8 @@ export async function getExpenses(): Promise<Expense[]> {
         const dateStr = row[dateIndex > -1 ? dateIndex : 1];
         let date = new Date().toISOString();
         if (dateStr) {
-            // Dates from sheets can be just 'YYYY-MM-DD', which when parsed with `new Date()` can have timezone issues.
-            // Parsing as ISO ensures it's treated consistently.
-            const parsedDate = new Date(dateStr);
+            // Dates from sheets can be just 'YYYY-MM-DD'. We treat this as a date in IST.
+            const parsedDate = zonedTimeToUtc(`${dateStr}T00:00:00`, TIME_ZONE);
             if (!isNaN(parsedDate.getTime())) {
                 date = parsedDate.toISOString();
             }
@@ -151,8 +152,9 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
     paid: expense.category === 'Credit Card' ? !!expense.paid : undefined
   };
   
-  // The date is already an ISO string. Parse it to format it correctly for the sheet, avoiding timezone shifts.
-  const formattedDate = format(parseISO(newExpense.date), 'yyyy-MM-dd');
+  // The date is an ISO string. Convert it to IST before formatting.
+  const istDate = utcToZonedTime(parseISO(newExpense.date), TIME_ZONE);
+  const formattedDate = format(istDate, 'yyyy-MM-dd');
 
   const newRow = [
     newExpense.id, 
@@ -197,8 +199,9 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   
   const { rowIndex, range } = found;
   
-  // The date is already an ISO string. Parse it to format it correctly for the sheet.
-  const formattedDate = format(parseISO(expense.date), 'yyyy-MM-dd');
+  // The date is an ISO string. Convert it to IST before formatting.
+  const istDate = utcToZonedTime(parseISO(expense.date), TIME_ZONE);
+  const formattedDate = format(istDate, 'yyyy-MM-dd');
   const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'TRUE' : 'FALSE') : '';
   const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
 
@@ -442,3 +445,5 @@ export async function setMasterPassword(password: string): Promise<void> {
         });
     }
 }
+
+    

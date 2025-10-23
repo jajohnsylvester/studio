@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
+import { utcToZonedTime } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -44,6 +45,8 @@ import { Textarea } from './ui/textarea';
 import { getCategories } from '@/lib/sheets';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
+
+const TIME_ZONE = 'Asia/Kolkata';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -107,7 +110,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
         description: expense.description,
         amount: expense.amount,
         category: expense.category,
-        date: new Date(expense.date),
+        date: utcToZonedTime(new Date(expense.date), TIME_ZONE),
         paid: expense.paid || false,
       });
     }
@@ -282,3 +285,5 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
     </Dialog>
   );
 }
+
+    

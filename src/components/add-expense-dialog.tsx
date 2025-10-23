@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from "date-fns";
+import { utcToZonedTime } from 'date-fns-tz';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -45,6 +46,8 @@ import { Textarea } from './ui/textarea';
 import { getCategories } from '@/lib/sheets';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
+
+const TIME_ZONE = 'Asia/Kolkata';
 
 const expenseFormSchema = z.object({
   description: z.string().min(2, {
@@ -247,7 +250,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(utcToZonedTime(field.value, TIME_ZONE), "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -283,3 +286,5 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     </Dialog>
   );
 }
+
+    
