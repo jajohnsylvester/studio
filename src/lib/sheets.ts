@@ -3,7 +3,7 @@
 
 import { google } from 'googleapis';
 import type { Expense, Budget } from './types';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
 
@@ -102,10 +102,22 @@ export async function getExpenses(): Promise<Expense[]> {
         if(isNaN(amount)) return null;
         
         const category = row[categoryIndex > -1 ? categoryIndex : 3] || 'Other';
+        
+        const dateStr = row[dateIndex > -1 ? dateIndex : 1];
+        let date = new Date().toISOString();
+        if (dateStr) {
+            // Dates from sheets can be just 'YYYY-MM-DD', which when parsed with `new Date()` can have timezone issues.
+            // Parsing as ISO ensures it's treated consistently.
+            const parsedDate = new Date(dateStr);
+            if (!isNaN(parsedDate.getTime())) {
+                date = parsedDate.toISOString();
+            }
+        }
+
 
         return {
             id: row[idIndex > -1 ? idIndex : 0] || (new Date().getTime() + index).toString(),
-            date: row[dateIndex > -1 ? dateIndex : 1] ? new Date(row[dateIndex > -1 ? dateIndex : 1]).toISOString() : new Date().toISOString(),
+            date: date,
             description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
             category: category,
             amount: amount,
@@ -139,9 +151,12 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
     paid: expense.category === 'Credit Card' ? !!expense.paid : undefined
   };
   
+  // The date is already an ISO string. Parse it to format it correctly for the sheet, avoiding timezone shifts.
+  const formattedDate = format(parseISO(newExpense.date), 'yyyy-MM-dd');
+
   const newRow = [
     newExpense.id, 
-    format(new Date(newExpense.date), 'yyyy-MM-dd'), 
+    formattedDate, 
     newExpense.description, 
     newExpense.category, 
     newExpense.amount,
@@ -181,7 +196,9 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   }
   
   const { rowIndex, range } = found;
-  const formattedDate = format(new Date(expense.date), 'yyyy-MM-dd');
+  
+  // The date is already an ISO string. Parse it to format it correctly for the sheet.
+  const formattedDate = format(parseISO(expense.date), 'yyyy-MM-dd');
   const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'TRUE' : 'FALSE') : '';
   const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
 
