@@ -30,7 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getExpenses, addExpense, updateExpense, deleteExpense, getCategories } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { CATEGORIES as staticCategories } from '@/lib/types';
-import { Loader2, Search, CheckCircle } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useMasterPassword } from '@/hooks/use-master-password';
 import { MasterPasswordDialog } from '@/components/master-password-dialog';
@@ -412,3 +412,5 @@ export default function TransactionsPage() {
     </>
   );
 }
+
+    
