@@ -141,7 +141,13 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
     <Dialog open={open} onOpenChange={(isOpen) => {
         setOpen(isOpen);
         if (!isOpen) {
-            form.reset();
+            form.reset({
+                description: '',
+                amount: '' as any,
+                category: '',
+                date: new Date(),
+                paid: false,
+            });
         }
     }}>
       <DialogTrigger asChild>
@@ -250,7 +256,7 @@ export function AddExpenseDialog({ onAddExpense }: AddExpenseDialogProps) {
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(toZonedTime(field.value, TIME_ZONE), "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}

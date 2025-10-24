@@ -248,7 +248,7 @@ export function EditExpenseDialog({ expense, isOpen, onClose, onUpdateExpense }:
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                             format(toZonedTime(field.value, TIME_ZONE), "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}

@@ -140,11 +140,11 @@ export default function DashboardPage() {
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
-      const newExpense = await addExpense(newExpenseData);
-      setExpenses((prevExpenses) => [newExpense, ...prevExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      await addExpense(newExpenseData);
+      await loadData();
       toast({
         title: 'Expense Added',
-        description: `"${newExpense.description}" was added.`,
+        description: `"${newExpenseData.description}" was added.`,
       });
     } catch (error) {
         console.error("Failed to add expense", error);
@@ -159,7 +159,7 @@ export default function DashboardPage() {
   const handleUpdateExpense = async (updatedExpense: Expense) => {
     try {
         await updateExpense(updatedExpense);
-        setExpenses(prevExpenses => prevExpenses.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+        await loadData();
         setEditingExpense(null);
         toast({
             title: 'Expense Updated',
@@ -179,12 +179,11 @@ export default function DashboardPage() {
     if (!deletingExpense) return;
     try {
         await deleteExpense(deletingExpense.id);
-        setExpenses(prevExpenses => prevExpenses.filter(e => e.id !== deletingExpense.id));
+        await loadData();
         toast({
             title: "Expense Deleted",
             description: `"${deletingExpense.description}" was deleted.`,
         });
-        setDeletingExpense(null);
     } catch(error) {
         console.error("Failed to delete expense", error);
         toast({
@@ -192,6 +191,8 @@ export default function DashboardPage() {
             title: 'Error',
             description: 'Failed to delete expense from Google Sheet.',
         })
+    } finally {
+        setDeletingExpense(null);
     }
   };
   

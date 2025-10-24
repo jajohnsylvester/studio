@@ -51,7 +51,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
         <TableCell className="font-medium">
           <div className="flex items-center gap-2">
             <span className={cn("font-semibold", {
-                "text-rose-700": expense.category === 'Credit Card' && !expense.paid,
+                "text-destructive": expense.category === 'Credit Card' && !expense.paid,
                 "text-green-600": expense.category === 'Credit Card' && expense.paid,
             })}>{expense.description}</span>
             {expense.category === 'Credit Card' && (

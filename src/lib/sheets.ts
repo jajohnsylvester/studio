@@ -108,12 +108,12 @@ export async function getExpenses(): Promise<Expense[]> {
         const dateStr = row[dateIndex > -1 ? dateIndex : 1];
         let date;
         try {
-            // Dates from sheets can be just 'YYYY-MM-DD'. We parse this as a date in IST.
-             date = toZonedTime(parseISO(dateStr), TIME_ZONE).toISOString();
+            // Dates from sheets are 'YYYY-MM-DD'. Parse them and treat as IST.
+            date = toZonedTime(`${dateStr}T00:00:00`, TIME_ZONE).toISOString();
         } catch (e) {
-            date = new Date().toISOString();
+            console.error(`Could not parse date "${dateStr}". Skipping row.`, e);
+            return null; // Skip rows with invalid dates
         }
-
 
         return {
             id: row[idIndex > -1 ? idIndex : 0] || (new Date().getTime() + index).toString(),
