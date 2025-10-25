@@ -73,7 +73,10 @@ export function ExpenseList({ expenses, onEdit, onDelete, onTogglePaid }: Expens
           </div>
         </TableCell>
         <TableCell className="text-right">
-            <span>{Math.abs(expense.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+            <span className={cn({
+                "text-destructive": expense.category === 'Credit Card' && !expense.paid,
+                "text-green-600": expense.category === 'Credit Card' && expense.paid,
+            })}>{Math.abs(expense.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
         </TableCell>
         <TableCell className="hidden md:table-cell text-right">
             {format(toZonedTime(new Date(expense.date), TIME_ZONE), 'PP')}
