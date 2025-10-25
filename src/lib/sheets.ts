@@ -3,7 +3,7 @@
 
 import { google } from 'googleapis';
 import type { Expense, Budget } from './types';
-import { format, parseISO } from 'date-fns';
+import { format, getYear } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
@@ -33,7 +33,7 @@ async function getSheetIdByName(sheets: any, sheetName: string): Promise<number 
     const response = await sheets.spreadsheets.get({
         spreadsheetId: SHEET_ID,
     });
-    const sheet = response.data.sheets?.find(s => s.properties?.title === sheetName);
+    const sheet = response.data.sheets?.find((s: any) => s.properties?.title === sheetName);
     return sheet?.properties?.sheetId;
 }
 
@@ -59,17 +59,15 @@ async function ensureSheetExists(sheets: any, sheetName: string, headers: string
             });
         }
     } catch (error) {
-        // If the sheet ID is invalid, this will fail. We can't do much here.
-        // The user will see a toast notification on the frontend.
         console.error(`Error ensuring sheet "${sheetName}" exists. This may be due to an invalid SHEET_ID.`, error);
         throw error;
     }
 }
 
-export async function getExpenses(): Promise<Expense[]> {
+export async function getExpenses(year: number): Promise<Expense[]> {
   try {
     const sheets = getSheets();
-    const range = 'Transactions';
+    const range = `Transactions-${year}`;
     await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
     
     const response = await sheets.spreadsheets.values.get({
@@ -89,60 +87,58 @@ export async function getExpenses(): Promise<Expense[]> {
     const categoryIndex = headers.indexOf('category');
     const amountIndex = headers.indexOf('amount');
     const paidIndex = headers.indexOf('paid');
-    
-    if ([idIndex, dateIndex, descriptionIndex, categoryIndex, amountIndex].includes(-1)) {
-        console.warn("One or more headers (id, date, description, category, amount) are missing in the Transactions Sheet. Assuming default order. Please add the header row for reliable data processing.");
-    }
-    if (paidIndex === -1) {
-        console.warn("The 'paid' header is missing in the Transactions Sheet. Paid status for credit card transactions will not be loaded. Please add the 'paid' header.");
-    }
 
     return rows.slice(1).map((row, index): Expense | null => {
         if(row.every(cell => !cell)) return null; // Skip empty rows
         
-        const amount = parseFloat(row[amountIndex > -1 ? amountIndex : 4]);
+        const amount = parseFloat(row[amountIndex]);
         if(isNaN(amount)) return null;
         
-        const category = row[categoryIndex > -1 ? categoryIndex : 3] || 'Other';
+        const category = row[categoryIndex] || 'Other';
         
-        const dateStr = row[dateIndex > -1 ? dateIndex : 1];
+        const dateStr = row[dateIndex];
         let date;
         try {
-            // Dates from sheets are 'YYYY-MM-DD'. Parse them and treat as IST.
-            date = toZonedTime(`${dateStr}T00:00:00`, TIME_ZONE).toISOString();
+            date = toZonedTime(dateStr, TIME_ZONE).toISOString();
         } catch (e) {
-            console.error(`Could not parse date "${dateStr}". Skipping row.`, e);
+            console.error(`Could not parse date "${dateStr}" at row ${index + 2}. Skipping row.`, e);
             return null; // Skip rows with invalid dates
         }
 
         return {
-            id: row[idIndex > -1 ? idIndex : 0] || (new Date().getTime() + index).toString(),
+            id: row[idIndex] || (new Date().getTime() + index).toString(),
             date: date,
-            description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
+            description: row[descriptionIndex] || '',
             category: category,
             amount: amount,
             paid: category === 'Credit Card' ? (paidIndex > -1 ? row[paidIndex] === 'Paid' : false) : undefined,
         }
     }).filter((e): e is Expense => e !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && error.message.includes('Unable to parse range')) {
+        console.log(`Sheet for year ${year} likely doesn't exist. Returning empty array.`);
+        return [];
+    }
     console.error('Error fetching expenses from Google Sheets:', error);
-    // Return empty array to prevent app crash if sheet is not accessible
     return [];
   }
 }
 
 export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
-  const range = 'Transactions';
+  const expenseYear = getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
+  const range = `Transactions-${expenseYear}`;
   
+  await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
+
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
     range: `${range}!A:A`,
   });
 
   const existingIds = response.data.values ? response.data.values.flat().map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
-  const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+  const maxId = existingIds.length > 0 ? Math.max(0, ...existingIds) : 0;
   const newId = maxId + 1;
 
   const newExpense: Expense = { 
@@ -177,7 +173,7 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
 async function findRowById(sheets: any, rangeName: string, id: string): Promise<{rowIndex: number, range: string} | null> {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: `${rangeName}!A:A`, // Assuming 'id' is in column A
+      range: `${rangeName}!A:A`,
     });
     const ids = response.data.values;
     if (!ids) return null;
@@ -188,33 +184,52 @@ async function findRowById(sheets: any, rangeName: string, id: string): Promise<
 
 export async function updateExpense(expense: Expense): Promise<Expense> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, 'Transactions', expense.id);
+  
+  const originalYear = getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
+  const originalRange = `Transactions-${originalYear}`;
+  
+  const updatedDate = toZonedTime(new Date(expense.date), TIME_ZONE);
+  const updatedYear = getYear(updatedDate);
+  const updatedRange = `Transactions-${updatedYear}`;
 
-  if (found === null) {
-    throw new Error('Expense not found to update');
+  if (originalYear !== updatedYear) {
+    // If year has changed, delete from old sheet and add to new sheet
+    await deleteExpense(expense, originalYear);
+    const { id, ...newExpenseData } = expense;
+    await addExpense(newExpenseData);
+  } else {
+    // If year is the same, just update the row
+    const found = await findRowById(sheets, originalRange, expense.id);
+
+    if (found === null) {
+      throw new Error('Expense not found to update');
+    }
+    
+    const { rowIndex, range } = found;
+    
+    const formattedDate = format(updatedDate, 'yyyy-MM-dd');
+    const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'Paid' : 'Not Paid') : '';
+    const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${range}!A${rowIndex}:F${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [updatedRow],
+      },
+    });
   }
-  
-  const { rowIndex, range } = found;
-  
-  const formattedDate = format(toZonedTime(new Date(expense.date), TIME_ZONE), 'yyyy-MM-dd');
-  const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'Paid' : 'Not Paid') : '';
-  const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID,
-    range: `${range}!A${rowIndex}:F${rowIndex}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [updatedRow],
-    },
-  });
 
   return expense;
 }
 
-export async function deleteExpense(id: string): Promise<void> {
+export async function deleteExpense(expense: Expense, year?: number): Promise<void> {
   const sheets = getSheets();
-  const found = await findRowById(sheets, 'Transactions', id);
+  const expenseYear = year || getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
+  const range = `Transactions-${expenseYear}`;
+  
+  const found = await findRowById(sheets, range, expense.id);
 
   if (found === null) {
     throw new Error('Expense not found to delete');
@@ -222,12 +237,11 @@ export async function deleteExpense(id: string): Promise<void> {
   
   const { rowIndex } = found;
 
-  const sheetId = await getSheetIdByName(sheets, 'Transactions');
+  const sheetId = await getSheetIdByName(sheets, range);
   
   if (sheetId === undefined) {
     throw new Error("Could not find sheet ID to delete row.");
   }
-
 
   await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SHEET_ID,
@@ -264,7 +278,7 @@ export async function getCategories(): Promise<string[]> {
         const rows = response.data.values;
         if (!rows) return [];
 
-        return rows.flat().filter(Boolean); // [['Cat1'], ['Cat2']] -> ['Cat1', 'Cat2']
+        return rows.flat().filter(Boolean);
     } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -359,7 +373,6 @@ export async function updateBudgets(budgets: Budget[]): Promise<void> {
     const sheets = getSheets();
     const range = 'Budgets';
     
-    // Clear existing budgets (A2:B)
     await sheets.spreadsheets.values.clear({
         spreadsheetId: SHEET_ID,
         range: `${range}!A2:B`,
@@ -367,7 +380,6 @@ export async function updateBudgets(budgets: Budget[]): Promise<void> {
     
     if(budgets.length === 0) return;
     
-    // Write new budgets
     await sheets.spreadsheets.values.update({
         spreadsheetId: SHEET_ID,
         range: `${range}!A2`,
@@ -419,7 +431,6 @@ export async function setMasterPassword(password: string): Promise<void> {
     let rowIndex = rows ? rows.findIndex(row => row[0] === MASTER_PASSWORD_KEY) : -1;
     
     if (rowIndex !== -1) {
-        // Update existing password
         await sheets.spreadsheets.values.update({
             spreadsheetId: SHEET_ID,
             range: `${range}!B${rowIndex + 1}`,
@@ -429,7 +440,6 @@ export async function setMasterPassword(password: string): Promise<void> {
             },
         });
     } else {
-        // Add new password
         await sheets.spreadsheets.values.append({
             spreadsheetId: SHEET_ID,
             range: range,
@@ -438,5 +448,26 @@ export async function setMasterPassword(password: string): Promise<void> {
                 values: [[MASTER_PASSWORD_KEY, password]],
             },
         });
+    }
+}
+
+export async function getYearsWithExpenses(): Promise<number[]> {
+    try {
+        const sheets = getSheets();
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: SHEET_ID,
+        });
+
+        const sheetTitles = response.data.sheets?.map(s => s.properties?.title || '') || [];
+        const transactionYears = sheetTitles
+            .filter(title => title.startsWith('Transactions-'))
+            .map(title => parseInt(title.split('-')[1]))
+            .filter(year => !isNaN(year))
+            .sort((a, b) => b - a);
+            
+        return transactionYears;
+    } catch (error) {
+        console.error('Error fetching sheet years:', error);
+        return [new Date().getFullYear()];
     }
 }

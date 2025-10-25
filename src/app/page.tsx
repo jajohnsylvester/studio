@@ -22,10 +22,10 @@ import {
   ChartConfig,
   ChartLegend,
   ChartLegendContent,
-  CartesianGrid,
 } from '@/components/ui/chart';
 import { Progress } from '@/components/ui/progress';
-import { Pie, PieChart, Cell, Bar, BarChart, XAxis, YAxis, TooltipProps } from 'recharts';
+import { Pie, PieChart, Cell } from 'recharts';
+import { TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { useToast } from '@/hooks/use-toast';
 import { getExpenses, addExpense, updateExpense, deleteExpense, getBudgets } from '@/lib/sheets';
@@ -110,7 +110,7 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(), getBudgets()]);
+      const [sheetExpenses, sheetBudgets] = await Promise.all([getExpenses(selectedYear), getBudgets()]);
       setExpenses(sheetExpenses);
       setBudgets(sheetBudgets);
     } catch (error) {
@@ -123,7 +123,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, selectedYear]);
 
   useEffect(() => {
     loadData();
@@ -178,7 +178,7 @@ export default function DashboardPage() {
   const handleDeleteExpense = async () => {
     if (!deletingExpense) return;
     try {
-        await deleteExpense(deletingExpense.id);
+        await deleteExpense(deletingExpense);
         await loadData();
         toast({
             title: "Expense Deleted",
@@ -206,7 +206,7 @@ export default function DashboardPage() {
       return;
     }
 
-    const headers = ["ID", "Date", "Description", "Category", "Amount"];
+    const headers = ["ID", "Date", "Description", "Category", "Amount", "Paid"];
     const csvContent = [
       headers.join(","),
       ...filteredExpenses.map(e => 
@@ -215,7 +215,8 @@ export default function DashboardPage() {
           format(toZonedTime(new Date(e.date), TIME_ZONE), "yyyy-MM-dd"), 
           `"${e.description.replace(/"/g, '""')}"`, // Handle quotes
           e.category, 
-          e.amount
+          e.amount,
+          e.category === 'Credit Card' ? (e.paid ? 'Paid' : 'Not Paid') : ''
         ].join(",")
       )
     ].join("\n");

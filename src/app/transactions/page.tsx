@@ -78,7 +78,7 @@ export default function TransactionsPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [sheetExpenses, sheetCategories] = await Promise.all([getExpenses(), getCategories()]);
+      const [sheetExpenses, sheetCategories] = await Promise.all([getExpenses(selectedYear), getCategories()]);
       setExpenses(sheetExpenses);
 
       const combined = [...staticCategories, ...sheetCategories];
@@ -95,7 +95,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, selectedYear]);
 
   useEffect(() => {
     loadData();
@@ -160,7 +160,7 @@ export default function TransactionsPage() {
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
     try {
       await addExpense(newExpenseData);
-      await loadData(); // Reload data
+      await loadData();
       toast({
         title: 'Expense Added',
         description: `A new expense was added.`,
@@ -178,7 +178,7 @@ export default function TransactionsPage() {
   const handleUpdateExpense = async (updatedExpense: Expense) => {
      try {
         await updateExpense(updatedExpense);
-        await loadData(); // Reload data
+        await loadData();
         setEditingExpense(null);
         toast({
             title: 'Expense Updated',
@@ -197,8 +197,8 @@ export default function TransactionsPage() {
   const handleDeleteExpense = async () => {
     if (!deletingExpense) return;
     try {
-        await deleteExpense(deletingExpense.id);
-        await loadData(); // Reload data
+        await deleteExpense(deletingExpense);
+        await loadData();
         toast({
             title: "Expense Deleted",
             description: `"${deletingExpense.description}" was deleted.`,
@@ -243,7 +243,7 @@ export default function TransactionsPage() {
       
       try {
         await updateExpense(updatedExpense);
-        await loadData(); // Re-fetch data to ensure UI is in sync
+        await loadData();
         toast({
             title: `Status Updated`,
             description: `Expense marked as ${updatedExpense.paid ? 'Paid' : 'Unpaid'}.`,
@@ -398,8 +398,7 @@ export default function TransactionsPage() {
               <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the expense
-                  "{deletingExpense?.description}".
+                  This action cannot be undone. This will permanently delete the expense "{deletingExpense?.description}".
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

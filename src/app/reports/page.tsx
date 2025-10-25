@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getExpenses } from '@/lib/sheets';
+import { getExpenses, getYearsWithExpenses } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import {
@@ -47,56 +47,58 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  const years = useMemo(() => {
-    if (expenses.length === 0) return [];
-    const uniqueYears = [...new Set(expenses.map(e => new Date(e.date).getFullYear()))].sort((a,b) => b - a);
-    const minYear = 2024;
-    const maxYear = 2050;
-    const allYears = Array.from({length: maxYear - minYear + 1}, (_, i) => maxYear - i);
-    const presentYears = allYears.filter(year => uniqueYears.includes(year));
-    return presentYears.length > 0 ? presentYears : [new Date().getFullYear()];
-  }, [expenses]);
-  
+  const [years, setYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   
   useEffect(() => {
-    if (years.length > 0 && selectedYear === null) {
-      setSelectedYear(years[0]);
-    }
-  }, [years, selectedYear]);
-
-  useEffect(() => {
-    async function loadExpenses() {
-      setIsLoading(true);
+    async function loadYears() {
       try {
-        const sheetExpenses = await getExpenses();
-        setExpenses(sheetExpenses);
+        const availableYears = await getYearsWithExpenses();
+        if (availableYears.length > 0) {
+            setYears(availableYears);
+            setSelectedYear(availableYears[0]);
+        } else {
+            const currentYear = new Date().getFullYear();
+            setYears([currentYear]);
+            setSelectedYear(currentYear);
+        }
       } catch (error) {
-        console.error("Failed to load expenses", error);
+        console.error("Failed to load years", error);
         toast({
             variant: "destructive",
-            title: "Failed to load data",
-            description: "Could not fetch expenses from Google Sheets.",
+            title: "Failed to load years",
+            description: "Could not fetch available years from Google Sheets.",
         })
-      } finally {
-        setIsLoading(false);
       }
     }
-    loadExpenses();
+    loadYears();
   }, [toast]);
 
-  const expensesByYear = useMemo(() => {
-    return expenses.reduce((acc, expense) => {
-      const year = new Date(expense.date).getFullYear();
-      if (!acc[year]) {
-        acc[year] = [];
-      }
-      acc[year].push(expense);
-      return acc;
-    }, {} as { [key: number]: Expense[] });
-  }, [expenses]);
+  const loadExpenses = useCallback(async () => {
+    if (!selectedYear) return;
+    
+    setIsLoading(true);
+    try {
+      const sheetExpenses = await getExpenses(selectedYear);
+      setExpenses(sheetExpenses);
+    } catch (error) {
+      console.error("Failed to load expenses", error);
+      toast({
+          variant: "destructive",
+          title: "Failed to load data",
+          description: "Could not fetch expenses from Google Sheets.",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedYear, toast]);
 
-  if (isLoading) {
+  useEffect(() => {
+    loadExpenses();
+  }, [loadExpenses]);
+
+
+  if (isLoading && expenses.length === 0) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -104,10 +106,9 @@ export default function ReportsPage() {
     );
   }
   
-  const yearData = selectedYear ? expensesByYear[selectedYear] : [];
-  const totalSpentForYear = yearData?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+  const totalSpentForYear = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   
-  const spendingByCategory = (yearData || []).reduce((acc, expense) => {
+  const spendingByCategory = expenses.reduce((acc, expense) => {
       const category = expense.category || "Other";
       if (!acc[category]) acc[category] = 0;
       acc[category] += expense.amount;
@@ -131,9 +132,9 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
-        {years.length > 0 && (
+        {years.length > 0 && selectedYear && (
           <Select
-            value={selectedYear?.toString()}
+            value={selectedYear.toString()}
             onValueChange={(value) => setSelectedYear(parseInt(value))}
           >
             <SelectTrigger className="w-[180px]">
@@ -149,12 +150,16 @@ export default function ReportsPage() {
           </Select>
         )}
       </div>
-
-      {expenses.length === 0 && !isLoading ? (
+      
+      {isLoading ? (
+         <div className="flex justify-center items-center h-[400px]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+         </div>
+      ) : expenses.length === 0 ? (
         <Card className="text-center p-8">
-          <CardTitle>No Expense Data</CardTitle>
+          <CardTitle>No Expense Data for {selectedYear}</CardTitle>
           <CardDescription className="mt-2">
-            Once you start adding expenses, your yearly reports will show up here.
+            Once you start adding expenses, your yearly report will show up here.
           </CardDescription>
         </Card>
       ) : selectedYear && (
