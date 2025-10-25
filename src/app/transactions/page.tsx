@@ -108,7 +108,18 @@ export default function TransactionsPage() {
       const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
       const isMonthMatch = getMonth(expenseDate) === monthIndex;
       const isYearMatch = getYear(expenseDate) === selectedYear;
-      const isCategoryMatch = categoryFilter === 'all' || expense.category === categoryFilter;
+      
+      let isCategoryMatch = true;
+      if (categoryFilter === 'all') {
+          isCategoryMatch = true;
+      } else if (categoryFilter === 'Credit Card Paid') {
+          isCategoryMatch = expense.category === 'Credit Card' && expense.paid === true;
+      } else if (categoryFilter === 'Credit Card Not Paid') {
+          isCategoryMatch = expense.category === 'Credit Card' && expense.paid === false;
+      } else {
+          isCategoryMatch = expense.category === categoryFilter;
+      }
+
       const isSearchMatch = !searchQuery || expense.description.toLowerCase().includes(searchQuery.toLowerCase());
       return isMonthMatch && isYearMatch && isCategoryMatch && isSearchMatch;
     });
@@ -140,7 +151,14 @@ export default function TransactionsPage() {
   }, [filteredExpenses]);
   
   const { foodCardTotal, creditCardTotal, otherTotal, paidCreditCardTotal } = useMemo(() => {
-    return filteredExpenses.reduce((acc, expense) => {
+    const monthIndex = months.indexOf(selectedMonth);
+    // We calculate totals based on the month/year, but before category/search filters
+    const allMonthExpenses = expenses.filter(expense => {
+        const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
+        return getMonth(expenseDate) === monthIndex && getYear(expenseDate) === selectedYear;
+    });
+
+    return allMonthExpenses.reduce((acc, expense) => {
       if (expense.category === 'FoodCard') {
         acc.foodCardTotal += expense.amount;
       } else if (expense.category === 'Credit Card') {
@@ -154,7 +172,7 @@ export default function TransactionsPage() {
       }
       return acc;
     }, { foodCardTotal: 0, creditCardTotal: 0, otherTotal: 0, paidCreditCardTotal: 0 });
-  }, [filteredExpenses]);
+  }, [expenses, selectedMonth, selectedYear]);
 
 
   const handleAddExpense = async (newExpenseData: Omit<Expense, 'id'>) => {
@@ -305,7 +323,7 @@ export default function TransactionsPage() {
 
         <Card>
           <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -327,6 +345,8 @@ export default function TransactionsPage() {
                               {category}
                           </SelectItem>
                           ))}
+                          <SelectItem value="Credit Card Paid">Credit Card Paid</SelectItem>
+                          <SelectItem value="Credit Card Not Paid">Credit Card Not Paid</SelectItem>
                       </SelectContent>
                   </Select>
               </div>
@@ -350,10 +370,9 @@ export default function TransactionsPage() {
               <CardHeader>
                   <div className="flex flex-wrap justify-between items-start gap-4">
                       <div>
-                          <CardTitle>All Transactions</CardTitle>
+                          <CardTitle>Transactions</CardTitle>
                           <CardDescription>
                               Your expenses for {selectedMonth} {selectedYear}. 
-                              Total: {filteredExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                           </CardDescription>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-right">
@@ -402,7 +421,7 @@ export default function TransactionsPage() {
               </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setDeletingExpense(null)}>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
@@ -411,3 +430,5 @@ export default function TransactionsPage() {
     </>
   );
 }
+
+    
