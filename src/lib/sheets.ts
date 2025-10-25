@@ -121,7 +121,7 @@ export async function getExpenses(): Promise<Expense[]> {
             description: row[descriptionIndex > -1 ? descriptionIndex : 2] || '',
             category: category,
             amount: amount,
-            paid: category === 'Credit Card' ? (paidIndex > -1 ? row[paidIndex] === 'TRUE' : false) : undefined,
+            paid: category === 'Credit Card' ? (paidIndex > -1 ? row[paidIndex] === 'Paid' : false) : undefined,
         }
     }).filter((e): e is Expense => e !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -159,7 +159,7 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
     newExpense.description, 
     newExpense.category, 
     newExpense.amount,
-    newExpense.category === 'Credit Card' ? (newExpense.paid ? 'TRUE' : 'FALSE') : ''
+    newExpense.category === 'Credit Card' ? (newExpense.paid ? 'Paid' : 'Not Paid') : ''
   ];
 
   await sheets.spreadsheets.values.append({
@@ -197,7 +197,7 @@ export async function updateExpense(expense: Expense): Promise<Expense> {
   const { rowIndex, range } = found;
   
   const formattedDate = format(toZonedTime(new Date(expense.date), TIME_ZONE), 'yyyy-MM-dd');
-  const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'TRUE' : 'FALSE') : '';
+  const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'Paid' : 'Not Paid') : '';
   const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
 
   await sheets.spreadsheets.values.update({
