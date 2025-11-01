@@ -21,9 +21,10 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart';
-import { Pie, PieChart, Cell, TooltipProps, BarChart, XAxis, YAxis, Bar } from 'recharts';
+import { Pie, PieChart, Cell, TooltipProps, BarChart, XAxis, YAxis, Bar, CartesianGrid } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { getMonth, toZonedTime } from 'date-fns';
+import { getMonth } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
   const { active, payload } = props;
@@ -294,5 +295,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-  
