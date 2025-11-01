@@ -160,11 +160,11 @@ function PerplexityChat() {
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
   
-  const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('sonar-small-chat'); // Default to a valid free model
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
-  
+  const [isApiKeyConfigured, setIsApiKeyConfigured] = useState<boolean | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -178,11 +178,22 @@ function PerplexityChat() {
   
   // Load settings from local storage on mount
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('perplexityApiKey');
     const savedModel = localStorage.getItem('perplexityModel');
-    if (savedApiKey) setApiKey(savedApiKey);
     if (savedModel) setModel(savedModel);
-  }, []);
+
+    // Check if API key is configured on the server
+    fetch('/api/chat', { method: 'HEAD' }).then(response => {
+        setIsApiKeyConfigured(response.ok);
+        if (!response.ok) {
+            toast({
+                variant: 'destructive',
+                title: 'Perplexity API Key Missing',
+                description: 'Please set the PERPLEXITY_API_KEY in your .env file.',
+            });
+        }
+    });
+
+  }, [toast]);
 
 
   const clearChat = () => {
@@ -194,9 +205,12 @@ function PerplexityChat() {
     
     if (!input.trim() || isLoading) return;
     
-    if (!apiKey) {
-      alert('Please enter your Perplexity API key in the settings');
-      setShowSettings(true);
+    if (!isApiKeyConfigured) {
+      toast({
+        variant: 'destructive',
+        title: 'API Key Not Configured',
+        description: 'The Perplexity API key is not configured on the server.',
+      });
       return;
     }
 
@@ -207,38 +221,59 @@ function PerplexityChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: model,
           messages: newMessages.map(({isError, ...rest}) => rest), // Remove isError before sending
           temperature: temperature,
           max_tokens: maxTokens,
-          stream: false
+          stream: true,
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+      if (!response.ok || !response.body) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `API Error: ${response.status}`);
       }
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage = { role: 'assistant' as const, content: '' };
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          // Perplexity streams data in the format: data: {...}\n\n
+          const jsonStrings = chunk.split('data: ').filter(s => s.trim());
 
-      const data = await response.json();
-      const assistantMessage = {
-        role: 'assistant' as const,
-        content: data.choices[0].message.content
-      };
-
-      setMessages([...newMessages, assistantMessage]);
+          for (const jsonStr of jsonStrings) {
+              if (jsonStr.trim() === '[DONE]') {
+                  setIsLoading(false);
+                  return;
+              }
+              try {
+                  const parsed = JSON.parse(jsonStr);
+                  const delta = parsed.choices[0]?.delta?.content || '';
+                  assistantMessage.content += delta;
+                  setMessages(prev => prev.map(msg => msg === prev[prev.length -1] ? {...assistantMessage} : msg));
+              } catch (parseError) {
+                  console.warn("Could not parse stream chunk:", jsonStr);
+              }
+          }
+      }
+      
     } catch (error: any) {
       console.error('Error:', error);
       const errorMessage = {
         role: 'assistant' as const,
-        content: `Error: ${error.message}. Please check your API key and try again.`,
+        content: `Error: ${error.message}. Please check server logs for details.`,
         isError: true
       };
       setMessages([...newMessages, errorMessage]);
@@ -255,7 +290,6 @@ function PerplexityChat() {
   };
   
   const handleSaveSettings = () => {
-    localStorage.setItem('perplexityApiKey', apiKey);
     localStorage.setItem('perplexityModel', model);
     toast({
         title: 'Settings Saved',
@@ -285,26 +319,31 @@ function PerplexityChat() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Perplexity API Key
-                  </label>
-                  <Input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter API key"
-                  />
-                  {apiKey && (
-                    <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
-                      <Check size={14} />
-                      <span>API Key configured</span>
-                    </div>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Get your key at perplexity.ai/settings/api
-                  </p>
+                 <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">
+                        API Key Status
+                    </label>
+                    {isApiKeyConfigured === null ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Checking...</span>
+                        </div>
+                    ) : isApiKeyConfigured ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                            <Check size={14} />
+                            <span>Server key is configured</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-sm text-destructive">
+                            <AlertCircle size={14} />
+                            <span>Server key is missing</span>
+                        </div>
+                    )}
+                     <p className="mt-1 text-xs text-muted-foreground">
+                        API key is managed on the server.
+                    </p>
                 </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -384,18 +423,9 @@ function PerplexityChat() {
                 <h3 className="font-semibold text-sm text-foreground mb-2">About Perplexity API</h3>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Real-time, web-grounded responses</li>
-                  <li>• Get API key from Perplexity Portal</li>
+                  <li>• API key is managed on the server.</li>
                   <li>• Messages: {messages.length}</li>
                 </ul>
-              </div>
-
-              <div className="mt-4 p-4 bg-yellow-100/50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-800/50">
-                <div className="flex items-start gap-2">
-                  <AlertCircle size={16} className="text-yellow-600 mt-0.5 flex-shrink-0 dark:text-yellow-400" />
-                  <div className="text-xs text-yellow-800 dark:text-yellow-300">
-                    <strong>Note:</strong> This is a demo. For production, use Next.js API routes to protect your API key.
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -493,7 +523,7 @@ function PerplexityChat() {
                   ))
                 )}
                 
-                {isLoading && (
+                {isLoading && messages[messages.length -1]?.role !== 'assistant' && (
                   <div className="flex justify-start">
                     <div className="bg-card text-foreground shadow-sm border rounded-lg p-4 max-w-3xl">
                       <div className="flex items-center gap-2">
@@ -522,22 +552,22 @@ function PerplexityChat() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask me anything..."
-                    disabled={isLoading}
+                    disabled={isLoading || !isApiKeyConfigured}
                     className="flex-1 px-4 py-3 rounded-lg disabled:bg-muted"
                   />
                   <Button
                     type="submit"
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || !input.trim() || !isApiKeyConfigured}
                     className="px-6 py-3 rounded-lg flex items-center gap-2"
                   >
                     <Send size={20} />
                     <span className="hidden sm:inline">Send</span>
                   </Button>
                 </form>
-                {!apiKey && (
+                {isApiKeyConfigured === false && (
                   <p className="mt-2 text-sm text-orange-600 flex items-center gap-1">
                     <AlertCircle size={14} />
-                    Please configure your API key in the settings
+                    Perplexity API Key is not configured on the server.
                   </p>
                 )}
               </div>
@@ -559,4 +589,5 @@ export default function SearchPage() {
         </div>
     );
 }
+
 
