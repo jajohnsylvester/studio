@@ -160,7 +160,7 @@ function PerplexityChat() {
   const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
   
-  const [model, setModel] = useState('sonar-small-chat'); // Default to a valid free model
+  const [model, setModel] = useState('sonar'); // Default model
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(1024);
   const [isApiKeyConfigured, setIsApiKeyConfigured] = useState<boolean | null>(null);
@@ -357,8 +357,9 @@ function PerplexityChat() {
                         <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="sonar-small-chat">Sonar Small Chat (Free)</SelectItem>
-                        <SelectItem value="sonar-medium-chat">Sonar Medium Chat (Pro)</SelectItem>
+                        <SelectItem value="sonar">Sonar</SelectItem>
+                        <SelectItem value="sonar-pro">Sonar Pro</SelectItem>
+                        <SelectItem value="sonar-reasoning">Sonar Reasoning</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -590,5 +591,4 @@ export default function SearchPage() {
     );
 }
 
-
-
+    
