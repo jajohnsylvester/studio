@@ -471,3 +471,70 @@ export async function getYearsWithExpenses(): Promise<number[]> {
         return [new Date().getFullYear()];
     }
 }
+
+export async function searchAllExpenses(query: string): Promise<Omit<Expense, 'id' | 'paid'>[]> {
+  try {
+    const sheets = getSheets();
+    const spreadsheetInfo = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const allSheetNames = spreadsheetInfo.data.sheets?.map(s => s.properties?.title || '') || [];
+    
+    const transactionSheetNames = allSheetNames.filter(name => name.startsWith('Transactions-'));
+
+    if (transactionSheetNames.length === 0) {
+      return [];
+    }
+
+    const searchPromises = transactionSheetNames.map(sheetName => 
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: sheetName,
+      })
+    );
+
+    const responses = await Promise.all(searchPromises);
+    const allResults: Omit<Expense, 'id' | 'paid'>[] = [];
+    const lowerCaseQuery = query.toLowerCase();
+
+    responses.forEach(response => {
+      const rows = response.data.values;
+      if (!rows || rows.length <= 1) return;
+
+      const headers = rows[0];
+      const descriptionIndex = headers.indexOf('description');
+      const dateIndex = headers.indexOf('date');
+      const categoryIndex = headers.indexOf('category');
+      const amountIndex = headers.indexOf('amount');
+
+      if ([descriptionIndex, dateIndex, categoryIndex, amountIndex].includes(-1)) {
+        return;
+      }
+      
+      rows.slice(1).forEach(row => {
+        const description = row[descriptionIndex] || '';
+        if (description.toLowerCase().includes(lowerCaseQuery)) {
+           try {
+                const amount = parseFloat(row[amountIndex]);
+                if(isNaN(amount)) return;
+
+                allResults.push({
+                    description: description,
+                    amount: amount,
+                    category: row[categoryIndex] || 'Other',
+                    date: toZonedTime(new Date(row[dateIndex]), TIME_ZONE).toISOString(),
+                });
+            } catch (e) {
+                // Ignore rows with invalid data during search
+            }
+        }
+      });
+    });
+    
+    // Sort by date descending
+    allResults.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return allResults;
+  } catch (error) {
+    console.error('Error searching all expenses:', error);
+    throw new Error('Failed to search expenses across all sheets.');
+  }
+}
