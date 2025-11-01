@@ -57,7 +57,6 @@ export default function ReportsPage() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const [allCategories, setAllCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
   
   useEffect(() => {
     async function loadInitialData() {
@@ -79,9 +78,6 @@ export default function ReportsPage() {
         const combined = [...staticCategories, ...sheetCategories];
         const uniqueCategories = [...new Set(combined)].sort();
         setAllCategories(uniqueCategories);
-        if (uniqueCategories.length > 0) {
-          setSelectedCategory(uniqueCategories[0]);
-        }
 
       } catch (error) {
         console.error("Failed to load initial data", error);
@@ -143,23 +139,31 @@ export default function ReportsPage() {
     return config;
   }, [pieChartData]);
   
-  const categoryMonthlySpending = useMemo(() => {
-    if (!selectedCategory) return [];
+  const categoryMonthlySpendingData = useMemo(() => {
+    const categoriesWithSpending = Object.keys(spendingByCategory);
     
-    const monthlyTotals = Array(12).fill(0);
-    
-    expenses
-      .filter(e => e.category === selectedCategory)
-      .forEach(expense => {
-        const monthIndex = getMonth(toZonedTime(new Date(expense.date), 'Asia/Kolkata'));
-        monthlyTotals[monthIndex] += expense.amount;
-      });
+    return categoriesWithSpending.map(category => {
+      const monthlyTotals = Array(12).fill(0);
       
-    return months.map((month, index) => ({
-      month,
-      total: monthlyTotals[index],
-    }));
-  }, [expenses, selectedCategory]);
+      expenses
+        .filter(e => e.category === category)
+        .forEach(expense => {
+          const monthIndex = getMonth(toZonedTime(new Date(expense.date), 'Asia/Kolkata'));
+          monthlyTotals[monthIndex] += expense.amount;
+        });
+        
+      const chartData = months.map((month, index) => ({
+        month,
+        total: monthlyTotals[index],
+      }));
+
+      return {
+        category,
+        chartData,
+        hasSpending: chartData.some(d => d.total > 0),
+      };
+    });
+  }, [expenses, spendingByCategory]);
 
   const barChartConfig: ChartConfig = {
     total: {
@@ -211,7 +215,7 @@ export default function ReportsPage() {
           </CardDescription>
         </Card>
       ) : selectedYear && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Yearly Report: {selectedYear}</CardTitle>
@@ -236,32 +240,19 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <CardTitle>Category Expense Trend</CardTitle>
-                        <CardDescription>Monthly spending for a category in {selectedYear}.</CardDescription>
-                    </div>
-                    {allCategories.length > 0 && (
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                            <SelectTrigger className="w-full sm:w-[200px]">
-                                <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {allCategories.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent>
-                {categoryMonthlySpending.some(d => d.total > 0) ? (
-                    <ChartContainer config={barChartConfig} className="h-[400px] w-full">
-                        <BarChart accessibilityLayer data={categoryMonthlySpending} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+          
+          <h2 className="text-2xl font-bold tracking-tight font-headline mt-4">Category Expense Trends</h2>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            {categoryMonthlySpendingData.filter(c => c.hasSpending).map(({ category, chartData }) => (
+              <Card key={category}>
+                <CardHeader>
+                    <CardTitle>{category} Trend</CardTitle>
+                    <CardDescription>Monthly spending in {selectedYear}.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={barChartConfig} className="h-[300px] w-full">
+                        <BarChart accessibilityLayer data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                            <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="month"
@@ -281,15 +272,11 @@ export default function ReportsPage() {
                             <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                         </BarChart>
                     </ChartContainer>
-                ) : (
-                    <div className="flex h-[400px] flex-col items-center justify-center text-center">
-                        <TrendingUp className="h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">No spending data for '{selectedCategory}' in {selectedYear}.</p>
-                        <p className="text-sm text-muted-foreground">Select another category or add expenses.</p>
-                    </div>
-                )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
         </div>
         )}
     </div>
