@@ -18,6 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { getCategoryIcon } from '@/lib/utils';
 import { Expense } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const searchFormSchema = z.object({
   query: z.string().min(1, { message: 'Please enter a search term.' }),
@@ -151,6 +158,7 @@ function PerplexityChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const { toast } = useToast();
   
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('sonar-small-chat'); // Default to a valid free model
@@ -552,4 +560,3 @@ export default function SearchPage() {
     );
 }
 
-    
