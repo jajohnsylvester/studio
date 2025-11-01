@@ -3,9 +3,10 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { getExpenses, getYearsWithExpenses } from '@/lib/sheets';
+import { getExpenses, getYearsWithExpenses, getCategories } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { CATEGORIES as staticCategories } from '@/lib/types';
+import { Loader2, TrendingUp } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -19,11 +20,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
-  ChartLegend,
-  ChartLegendContent,
 } from '@/components/ui/chart';
-import { Pie, PieChart, Cell, TooltipProps } from 'recharts';
+import { Pie, PieChart, Cell, TooltipProps, BarChart, XAxis, YAxis, Bar } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import { getMonth, toZonedTime } from 'date-fns';
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
   const { active, payload } = props;
@@ -42,6 +42,11 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
   return null;
 }
 
+const months = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,11 +54,18 @@ export default function ReportsPage() {
   
   const [years, setYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   
   useEffect(() => {
-    async function loadYears() {
+    async function loadInitialData() {
       try {
-        const availableYears = await getYearsWithExpenses();
+        const [availableYears, sheetCategories] = await Promise.all([
+            getYearsWithExpenses(),
+            getCategories()
+        ]);
+        
         if (availableYears.length > 0) {
             setYears(availableYears);
             setSelectedYear(availableYears[0]);
@@ -62,16 +74,24 @@ export default function ReportsPage() {
             setYears([currentYear]);
             setSelectedYear(currentYear);
         }
+
+        const combined = [...staticCategories, ...sheetCategories];
+        const uniqueCategories = [...new Set(combined)].sort();
+        setAllCategories(uniqueCategories);
+        if (uniqueCategories.length > 0) {
+          setSelectedCategory(uniqueCategories[0]);
+        }
+
       } catch (error) {
-        console.error("Failed to load years", error);
+        console.error("Failed to load initial data", error);
         toast({
             variant: "destructive",
-            title: "Failed to load years",
-            description: "Could not fetch available years from Google Sheets.",
+            title: "Failed to load initial data",
+            description: "Could not fetch available years or categories.",
         })
       }
     }
-    loadYears();
+    loadInitialData();
   }, [toast]);
 
   const loadExpenses = useCallback(async () => {
@@ -96,41 +116,68 @@ export default function ReportsPage() {
   useEffect(() => {
     loadExpenses();
   }, [loadExpenses]);
+  
+  const totalSpentForYear = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
+  
+  const spendingByCategory = useMemo(() => expenses.reduce((acc, expense) => {
+      const category = expense.category || "Other";
+      if (!acc[category]) acc[category] = 0;
+      acc[category] += expense.amount;
+      return acc;
+  }, {} as { [key: string]: number }), [expenses]);
+  
+  const pieChartData = useMemo(() => Object.entries(spendingByCategory)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value), [spendingByCategory]);
 
+  const pieChartConfig: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    pieChartData.forEach((item, index) => {
+        config[item.name] = {
+          label: item.name,
+          color: `hsl(var(--chart-${(index % 5) + 1}))`,
+        };
+    });
+    return config;
+  }, [pieChartData]);
+  
+  const categoryMonthlySpending = useMemo(() => {
+    if (!selectedCategory) return [];
+    
+    const monthlyTotals = Array(12).fill(0);
+    
+    expenses
+      .filter(e => e.category === selectedCategory)
+      .forEach(expense => {
+        const monthIndex = getMonth(toZonedTime(new Date(expense.date), 'Asia/Kolkata'));
+        monthlyTotals[monthIndex] += expense.amount;
+      });
+      
+    return months.map((month, index) => ({
+      month,
+      total: monthlyTotals[index],
+    }));
+  }, [expenses, selectedCategory]);
 
-  if (isLoading && expenses.length === 0) {
+  const barChartConfig: ChartConfig = {
+    total: {
+      label: "Total",
+      color: "hsl(var(--chart-1))",
+    },
+  };
+
+  if (isLoading && expenses.length === 0 && allCategories.length === 0) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
-  
-  const totalSpentForYear = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  
-  const spendingByCategory = expenses.reduce((acc, expense) => {
-      const category = expense.category || "Other";
-      if (!acc[category]) acc[category] = 0;
-      acc[category] += expense.amount;
-      return acc;
-  }, {} as { [key: string]: number });
-  
-  const pieChartData = Object.entries(spendingByCategory)
-      .map(([name, value]) => ({ name, value }))
-      .filter(item => item.value > 0)
-      .sort((a, b) => b.value - a.value);
-
-  const chartConfig: ChartConfig = {};
-  pieChartData.forEach((item, index) => {
-      chartConfig[item.name] = {
-        label: item.name,
-        color: `hsl(var(--chart-${(index % 5) + 1}))`,
-      };
-  });
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Reports</h1>
         {years.length > 0 && selectedYear && (
           <Select
@@ -163,6 +210,7 @@ export default function ReportsPage() {
           </CardDescription>
         </Card>
       ) : selectedYear && (
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Yearly Report: {selectedYear}</CardTitle>
@@ -170,15 +218,14 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               {pieChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[400px]">
+                <ChartContainer config={pieChartConfig} className="mx-auto aspect-square max-h-[400px]">
                   <PieChart>
                     <ChartTooltip content={<CustomPieTooltip />} />
                     <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={150}>
-                      {pieChartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={chartConfig[pieChartData[index].name]?.color} />
+                      {pieChartData.map((item, index) => (
+                        <Cell key={`cell-${index}`} fill={pieChartConfig[item.name]?.color} />
                       ))}
                     </Pie>
-                    <ChartLegend content={<ChartLegendContent />} className="mt-4" />
                   </PieChart>
                 </ChartContainer>
               ) : (
@@ -188,7 +235,64 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <CardTitle>Category Expense Trend</CardTitle>
+                        <CardDescription>Monthly spending for a category in {selectedYear}.</CardDescription>
+                    </div>
+                    {allCategories.length > 0 && (
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allCategories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent>
+                {categoryMonthlySpending.some(d => d.total > 0) ? (
+                    <ChartContainer config={barChartConfig} className="h-[400px] w-full">
+                        <BarChart accessibilityLayer data={categoryMonthlySpending} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                           <CartesianGrid vertical={false} />
+                            <XAxis
+                                dataKey="month"
+                                tickLine={false}
+                                tickMargin={10}
+                                axisLine={false}
+                                tickFormatter={(value) => value}
+                            />
+                            <YAxis 
+                              tickFormatter={(value) => `₹${Number(value) / 1000}k`}
+                            />
+                            <ChartTooltip 
+                                content={<ChartTooltipContent 
+                                    formatter={(value) => Number(value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                />} 
+                            />
+                            <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                        </BarChart>
+                    </ChartContainer>
+                ) : (
+                    <div className="flex h-[400px] flex-col items-center justify-center text-center">
+                        <TrendingUp className="h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 text-muted-foreground">No spending data for '{selectedCategory}' in {selectedYear}.</p>
+                        <p className="text-sm text-muted-foreground">Select another category or add expenses.</p>
+                    </div>
+                )}
+            </CardContent>
+          </Card>
+        </div>
         )}
     </div>
   );
 }
+
+  
