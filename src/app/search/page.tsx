@@ -236,8 +236,8 @@ function PerplexityChat() {
       });
 
       if (!response.ok || !response.body) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(errorText || `API Error: ${response.status}`);
       }
       
       const reader = response.body.getReader();
@@ -589,5 +589,6 @@ export default function SearchPage() {
         </div>
     );
 }
+
 
 
