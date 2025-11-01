@@ -71,6 +71,9 @@ function PerplexityChat() {
     setInput('');
     setIsLoading(true);
 
+    // Add a placeholder for the assistant's response
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -79,7 +82,7 @@ function PerplexityChat() {
         },
         body: JSON.stringify({
           model: model,
-          messages: newMessages,
+          messages: newMessages, // Send messages up to the user's latest
           temperature: temperature,
           max_tokens: maxTokens,
           stream: true,
@@ -93,9 +96,7 @@ function PerplexityChat() {
       
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantResponse = '';
-      let isFirstChunk = true;
-
+      
       while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -112,21 +113,17 @@ function PerplexityChat() {
                   try {
                       const parsed = JSON.parse(jsonStr);
                       const delta = parsed.choices[0]?.delta?.content || '';
-                      assistantResponse += delta;
+                      
+                      setMessages(prev => {
+                          const lastMessage = prev[prev.length - 1];
+                          if (lastMessage.role === 'assistant') {
+                              lastMessage.content += delta;
+                              return [...prev.slice(0, -1), lastMessage];
+                          }
+                          // This case should ideally not happen with the placeholder logic
+                          return [...prev, { role: 'assistant', content: delta }];
+                      });
 
-                      if (isFirstChunk) {
-                          setMessages(prev => [...prev, { role: 'assistant', content: assistantResponse }]);
-                          isFirstChunk = false;
-                      } else {
-                          setMessages(prev => {
-                              const lastMessage = prev[prev.length - 1];
-                              if (lastMessage.role === 'assistant') {
-                                  lastMessage.content = assistantResponse;
-                                  return [...prev.slice(0, -1), lastMessage];
-                              }
-                              return [...prev, { role: 'assistant', content: assistantResponse }];
-                          });
-                      }
                   } catch (e) {
                       console.error('Error parsing streaming data:', e);
                   }
@@ -138,10 +135,11 @@ function PerplexityChat() {
       console.error('Error:', error);
       const errorMessage = {
         role: 'assistant' as const,
-        content: `Error from Perplexity API: ${error.message}.`,
+        content: `Error: ${error.message}.`,
         isError: true
       };
-      setMessages(prev => [...prev.filter(m => m.role === 'user'), errorMessage]);
+      // Replace the placeholder with the error message
+      setMessages(prev => [...prev.slice(0, -1), errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -326,35 +324,31 @@ function PerplexityChat() {
                             : 'bg-white text-gray-800 shadow-sm border border-gray-200'
                         }`}
                       >
-                        <div className="flex items-start gap-2">
-                          {message.role === 'assistant' && !message.isError && (
-                            <Zap size={18} className="text-blue-600 flex-shrink-0 mt-1" />
-                          )}
-                          {message.isError && (
-                            <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-1" />
-                          )}
-                          <div className="flex-1">
-                            <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                          </div>
-                        </div>
+                         {message.role === 'assistant' && message.content === '' && !message.isError ? (
+                            <div className="flex items-center gap-2">
+                                <Zap size={18} className="text-blue-600 animate-pulse" />
+                                <div className="flex gap-1">
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                </div>
+                            </div>
+                         ) : (
+                            <div className="flex items-start gap-2">
+                            {message.role === 'assistant' && !message.isError && (
+                                <Zap size={18} className="text-blue-600 flex-shrink-0 mt-1" />
+                            )}
+                            {message.isError && (
+                                <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-1" />
+                            )}
+                            <div className="flex-1">
+                                <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                            </div>
+                            </div>
+                         )}
                       </div>
                     </div>
                   ))
-                )}
-                
-                {isLoading && messages[messages.length-1]?.role !== 'assistant' && (
-                  <div className="flex justify-start">
-                    <div className="bg-white text-gray-800 shadow-sm border border-gray-200 rounded-lg p-4 max-w-3xl">
-                      <div className="flex items-center gap-2">
-                        <Zap size={18} className="text-blue-600 animate-pulse" />
-                        <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 )}
                 
                 <div ref={messagesEndRef} />
