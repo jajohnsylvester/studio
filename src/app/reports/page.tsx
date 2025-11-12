@@ -48,10 +48,26 @@ const months = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
 
-const monthColors = [
+const categoryMonthColors = [
   '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
-  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+  '#C9CBCF', '#4D5360', '#F7464A', '#46BFBD', '#FDB45C', '#949FB1'
 ];
+
+const yearlyComparisonColors = [
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--chart-5))',
+    'hsl(220, 82%, 52%)',
+    'hsl(280, 82%, 52%)',
+    'hsl(100, 82%, 52%)',
+    'hsl(190, 82%, 52%)',
+    'hsl(310, 82%, 52%)',
+    'hsl(70, 82%, 52%)',
+    'hsl(130, 82%, 52%)',
+];
+
 
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -193,7 +209,7 @@ export default function ReportsPage() {
     months.forEach((month, index) => {
       config[month] = {
         label: month,
-        color: monthColors[index],
+        color: yearlyComparisonColors[index],
       };
     });
     return config;
@@ -273,7 +289,7 @@ export default function ReportsPage() {
                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => Number(value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} />} />
                   <Bar dataKey="total" radius={4}>
                     {monthlyComparisonData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={monthColors[index % monthColors.length]} />
+                      <Cell key={`cell-${index}`} fill={yearlyComparisonColors[index % yearlyComparisonColors.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -311,7 +327,7 @@ export default function ReportsPage() {
                             />
                             <Bar dataKey="total" radius={4}>
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={monthColors[index]} />
+                                    <Cell key={`cell-${index}`} fill={categoryMonthColors[index]} />
                                 ))}
                             </Bar>
                         </BarChart>
