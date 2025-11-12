@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getExpenses, getYearsWithExpenses, getCategories } from '@/lib/sheets';
 import type { Expense } from '@/lib/types';
 import { CATEGORIES as staticCategories } from '@/lib/types';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/chart';
 import { Pie, PieChart, Cell, TooltipProps, BarChart, XAxis, YAxis, Bar, CartesianGrid } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { getMonth } from 'date-fns';
+import { getMonth, getYear } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
 const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
@@ -48,6 +48,12 @@ const months = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ];
 
+const monthColors = [
+  'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
+];
+
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,14 +72,12 @@ export default function ReportsPage() {
             getCategories()
         ]);
         
-        if (availableYears.length > 0) {
-            setYears(availableYears);
-            setSelectedYear(availableYears[0]);
-        } else {
-            const currentYear = new Date().getFullYear();
-            setYears([currentYear]);
-            setSelectedYear(currentYear);
-        }
+        const currentYear = new Date().getFullYear();
+        const yearsToSet = availableYears.length > 0 ? availableYears : [currentYear];
+
+        setYears(yearsToSet);
+        setSelectedYear(yearsToSet[0]);
+        
 
         const combined = [...staticCategories, ...sheetCategories];
         const uniqueCategories = [...new Set(combined)].sort();
@@ -165,12 +169,36 @@ export default function ReportsPage() {
     });
   }, [expenses, spendingByCategory]);
 
+  const monthlyComparisonData = useMemo(() => {
+    const monthlyTotals = Array(12).fill(0);
+    expenses.forEach(expense => {
+      const monthIndex = getMonth(toZonedTime(new Date(expense.date), 'Asia/Kolkata'));
+      monthlyTotals[monthIndex] += expense.amount;
+    });
+    return months.map((month, index) => ({
+      month,
+      total: monthlyTotals[index],
+    }));
+  }, [expenses]);
+
+
   const barChartConfig: ChartConfig = {
     total: {
       label: "Total",
       color: "hsl(var(--chart-1))",
     },
   };
+
+  const monthlyComparisonConfig: ChartConfig = useMemo(() => {
+    const config: ChartConfig = {};
+    months.forEach((month, index) => {
+      config[month] = {
+        label: month,
+        color: monthColors[index],
+      };
+    });
+    return config;
+  }, []);
 
   if (isLoading && expenses.length === 0 && allCategories.length === 0) {
     return (
@@ -221,7 +249,7 @@ export default function ReportsPage() {
               <CardTitle>Yearly Report: {selectedYear}</CardTitle>
               <CardDescription>Total Spent: {totalSpentForYear.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid gap-6 md:grid-cols-2">
               {pieChartData.length > 0 ? (
                 <ChartContainer config={pieChartConfig} className="mx-auto aspect-square max-h-[400px]">
                   <PieChart>
@@ -238,6 +266,19 @@ export default function ReportsPage() {
                   No spending data for {selectedYear}.
                 </div>
               )}
+               <ChartContainer config={monthlyComparisonConfig} className="h-[400px] w-full">
+                <BarChart data={monthlyComparisonData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                  <YAxis tickFormatter={(value) => `₹${Number(value) / 1000}k`} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(value) => Number(value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} />} />
+                  <Bar dataKey="total" radius={4}>
+                    {monthlyComparisonData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={monthColors[index % monthColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
             </CardContent>
           </Card>
           
@@ -269,7 +310,11 @@ export default function ReportsPage() {
                                     formatter={(value) => Number(value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                 />} 
                             />
-                            <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+                            <Bar dataKey="total" radius={4}>
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={monthColors[index % monthColors.length]} />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ChartContainer>
                 </CardContent>
@@ -282,3 +327,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
