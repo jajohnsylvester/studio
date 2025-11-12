@@ -19,7 +19,7 @@ import {
   LayoutDashboard,
   PieChart,
   Wallet,
-  Receipt,
+  ReceiptIndianRupee,
   Shapes,
   Search,
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/transactions', label: 'Transactions', icon: Receipt },
+    { href: '/transactions', label: 'Transactions', icon: ReceiptIndianRupee },
     { href: '/categories', label: 'Categories', icon: Shapes },
     { href: '/reports', label: 'Reports', icon: PieChart },
     { href: '/search', label: 'Search', icon: Search },
