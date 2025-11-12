@@ -49,9 +49,8 @@ const months = [
 ];
 
 const monthColors = [
-  'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--chart-1))', 'hsl(var(--chart-2))'
+  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
 ];
 
 export default function ReportsPage() {
@@ -312,7 +311,7 @@ export default function ReportsPage() {
                             />
                             <Bar dataKey="total" radius={4}>
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={monthColors[index % monthColors.length]} />
+                                    <Cell key={`cell-${index}`} fill={monthColors[index]} />
                                 ))}
                             </Bar>
                         </BarChart>
