@@ -22,6 +22,10 @@ import {
   ReceiptIndianRupee,
   Shapes,
   Search,
+  BrainCircuit,
+  TrendingUp,
+  LineChart,
+  Crosshair,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +37,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/categories', label: 'Categories', icon: Shapes },
     { href: '/reports', label: 'Reports', icon: PieChart },
     { href: '/search', label: 'Search', icon: Search },
+    { href: '/personal-perplexity', label: 'Personal Perplexity', icon: BrainCircuit },
+    { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
+    { href: '/crossover-strategy', label: 'Crossover Strategy', icon: LineChart },
+    { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
   ];
 
   return (
