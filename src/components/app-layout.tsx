@@ -26,6 +26,7 @@ import {
   TrendingUp,
   LineChart,
   Crosshair,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
     { href: '/crossover-strategy', label: 'Crossover Strategy', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
+    { href: '/spreadsheet', label: 'Edit Sheet', icon: FileSpreadsheet },
   ];
 
   return (
