@@ -42,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
     { href: '/crossover-strategy', label: 'Crossover Strategy', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
-    { href: '/spreadsheet', label: 'Edit Sheet', icon: FileSpreadsheet },
+    { href: '/spreadsheet', label: 'StockMarketNotes Google sheet', icon: FileSpreadsheet },
   ];
 
   return (

@@ -6,14 +6,14 @@ export default function SpreadsheetPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Edit Google Sheet
+        StockMarketNotes Google sheet
       </h1>
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
             src="https://docs.google.com/spreadsheets/d/1KjNfd9nu_DjyKSaMcGJyMo6MQvk5qma9b92hI_BdL6Q/edit?usp=sharing&rm=minimal"
             className="w-full h-full border-0"
-            title="Google Sheet"
+            title="StockMarketNotes Google sheet"
           ></iframe>
         </CardContent>
       </Card>
