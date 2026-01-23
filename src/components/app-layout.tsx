@@ -27,6 +27,7 @@ import {
   LineChart,
   Crosshair,
   FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -43,6 +44,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/crossover-strategy', label: 'Crossover Strategy', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
     { href: '/spreadsheet', label: 'StockMarketNotes Google sheet', icon: FileSpreadsheet },
+    { href: '/notes', label: 'Notes', icon: FileText },
   ];
 
   return (
