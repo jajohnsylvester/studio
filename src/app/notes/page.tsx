@@ -11,7 +11,7 @@ export default function NotesPage() {
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
-            src="https://docs.google.com/document/d/1PPjg0gov0Ma9Hr29yNLMCcy6dgKfx1ovYNRW4xpQ0uw/edit?usp=sharing"
+            src="https://docs.google.com/document/d/1PPjg0gov0Ma9Hr29yNLMCcy6dgKfx1ovYNRW4xpQ0uw/edit?usp=sharing&embedded=true"
             className="w-full h-full border-0"
             title="Notes Google Doc"
           ></iframe>
