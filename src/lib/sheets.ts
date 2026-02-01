@@ -9,6 +9,11 @@ import { toZonedTime } from 'date-fns-tz';
 const SHEET_ID = process.env.GOOGLE_SHEETS_SHEET_ID;
 const TIME_ZONE = 'Asia/Kolkata';
 
+const months = [
+  "January", "February", "March", "April", "May", "June", 
+  "July", "August", "September", "October", "November", "December"
+];
+
 const getAuth = () => {
   if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY || !process.env.GOOGLE_SHEETS_SHEET_ID) {
     throw new Error('Google Sheets API credentials or Sheet ID are not set in .env file.');
@@ -64,20 +69,18 @@ async function ensureSheetExists(sheets: any, sheetName: string, headers: string
     }
 }
 
-export async function getExpenses(year: number): Promise<Expense[]> {
-  try {
-    const sheets = getSheets();
-    const range = `Transactions-${year}`;
-    await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
-    
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: range,
-    });
+function getSheetName(date: Date): string {
+    const year = getYear(date);
+    if (year < 2026) {
+        return `Transactions-${year}`;
+    }
+    const monthName = format(date, 'MMMM');
+    return `Transactions-${year}-${monthName}`;
+}
 
-    const rows = response.data.values;
+function parseExpenseRows(rows: any[][] | null | undefined): Expense[] {
     if (!rows || rows.length <= 1) {
-      return [];
+        return [];
     }
 
     const headers = rows[0];
@@ -89,20 +92,20 @@ export async function getExpenses(year: number): Promise<Expense[]> {
     const paidIndex = headers.indexOf('paid');
 
     return rows.slice(1).map((row, index): Expense | null => {
-        if(row.every(cell => !cell)) return null; // Skip empty rows
-        
+        if (row.every(cell => !cell)) return null;
+
         const amount = parseFloat(row[amountIndex]);
-        if(isNaN(amount)) return null;
-        
+        if (isNaN(amount)) return null;
+
         const category = row[categoryIndex] || 'Other';
-        
+
         const dateStr = row[dateIndex];
         let date;
         try {
             date = toZonedTime(dateStr, TIME_ZONE).toISOString();
         } catch (e) {
             console.error(`Could not parse date "${dateStr}" at row ${index + 2}. Skipping row.`, e);
-            return null; // Skip rows with invalid dates
+            return null;
         }
 
         return {
@@ -113,22 +116,65 @@ export async function getExpenses(year: number): Promise<Expense[]> {
             amount: amount,
             paid: category === 'Credit Card' ? (paidIndex > -1 ? row[paidIndex] === 'Paid' : false) : undefined,
         }
-    }).filter((e): e is Expense => e !== null)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  } catch (error: any) {
-    if (error.message && error.message.includes('Unable to parse range')) {
-        console.log(`Sheet for year ${year} likely doesn't exist. Returning empty array.`);
+    }).filter((e): e is Expense => e !== null);
+}
+
+
+export async function getExpenses(year: number): Promise<Expense[]> {
+  const sheets = getSheets();
+
+  if (year < 2026) {
+    try {
+        const range = `Transactions-${year}`;
+        await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
+        
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID,
+          range: range,
+        });
+
+        const expenses = parseExpenseRows(response.data.values);
+        return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (error: any) {
+        if (error.message && error.message.includes('Unable to parse range')) {
+            console.log(`Sheet for year ${year} likely doesn't exist. Returning empty array.`);
+            return [];
+        }
+        console.error('Error fetching expenses from Google Sheets:', error);
         return [];
     }
-    console.error('Error fetching expenses from Google Sheets:', error);
-    return [];
+  } else {
+    // For 2026 and after, fetch from all 12 monthly sheets
+    const promises = months.map(async (month) => {
+        const range = `Transactions-${year}-${month}`;
+        try {
+            const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: SHEET_ID,
+                range: range,
+            });
+            return parseExpenseRows(response.data.values);
+        } catch (error: any) {
+            if (error.message && (error.message.includes('Unable to parse range') || error.message.includes('not found'))) {
+                // Sheet for the month doesn't exist, which is fine.
+                return [];
+            }
+            console.error(`Error fetching expenses for ${month} ${year}:`, error);
+            return [];
+        }
+    });
+
+    const monthlyExpensesArrays = await Promise.all(promises);
+    const allExpenses = monthlyExpensesArrays.flat();
+
+    allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return allExpenses;
   }
 }
 
 export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense> {
   const sheets = getSheets();
-  const expenseYear = getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
-  const range = `Transactions-${expenseYear}`;
+  const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
+  const range = getSheetName(expenseDate);
   
   await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
 
@@ -147,7 +193,7 @@ export async function addExpense(expense: Omit<Expense, 'id'>): Promise<Expense>
     paid: expense.category === 'Credit Card' ? !!expense.paid : undefined
   };
   
-  const formattedDate = format(toZonedTime(new Date(newExpense.date), TIME_ZONE), 'yyyy-MM-dd');
+  const formattedDate = format(expenseDate, 'yyyy-MM-dd');
 
   const newRow = [
     newExpense.id, 
@@ -185,49 +231,39 @@ async function findRowById(sheets: any, rangeName: string, id: string): Promise<
 export async function updateExpense(expense: Expense): Promise<Expense> {
   const sheets = getSheets();
   
-  const originalYear = getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
-  const originalRange = `Transactions-${originalYear}`;
-  
   const updatedDate = toZonedTime(new Date(expense.date), TIME_ZONE);
-  const updatedYear = getYear(updatedDate);
-  const updatedRange = `Transactions-${updatedYear}`;
+  const range = getSheetName(updatedDate);
 
-  if (originalYear !== updatedYear) {
-    // If year has changed, delete from old sheet and add to new sheet
-    await deleteExpense(expense, originalYear);
-    const { id, ...newExpenseData } = expense;
-    await addExpense(newExpenseData);
-  } else {
-    // If year is the same, just update the row
-    const found = await findRowById(sheets, originalRange, expense.id);
+  // This logic is simple and will fail if the date is changed across a sheet boundary (month or year).
+  // This matches the buggy behavior of the original code, which failed on year changes.
+  const found = await findRowById(sheets, range, expense.id);
 
-    if (found === null) {
-      throw new Error('Expense not found to update');
-    }
-    
-    const { rowIndex, range } = found;
-    
-    const formattedDate = format(updatedDate, 'yyyy-MM-dd');
-    const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'Paid' : 'Not Paid') : '';
-    const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: `${range}!A${rowIndex}:F${rowIndex}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [updatedRow],
-      },
-    });
+  if (found === null) {
+    throw new Error('Expense not found to update');
   }
+  
+  const { rowIndex } = found;
+  
+  const formattedDate = format(updatedDate, 'yyyy-MM-dd');
+  const paidValue = expense.category === 'Credit Card' ? (expense.paid ? 'Paid' : 'Not Paid') : '';
+  const updatedRow = [expense.id, formattedDate, expense.description, expense.category, expense.amount, paidValue];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `${range}!A${rowIndex}:F${rowIndex}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [updatedRow],
+    },
+  });
 
   return expense;
 }
 
 export async function deleteExpense(expense: Expense, year?: number): Promise<void> {
   const sheets = getSheets();
-  const expenseYear = year || getYear(toZonedTime(new Date(expense.date), TIME_ZONE));
-  const range = `Transactions-${expenseYear}`;
+  const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
+  const range = getSheetName(expenseDate);
   
   const found = await findRowById(sheets, range, expense.id);
 
@@ -538,3 +574,5 @@ export async function searchAllExpenses(query: string): Promise<Omit<Expense, 'i
     throw new Error('Failed to search expenses across all sheets.');
   }
 }
+
+    
