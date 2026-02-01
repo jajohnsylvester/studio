@@ -44,8 +44,8 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
 }
 
 const months = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  "January", "February", "March", "April", "May", "June", 
+  "July", "August", "September", "October", "November", "December"
 ];
 
 const categoryMonthColors = [
@@ -57,8 +57,8 @@ const yearlyComparisonColors = [
     'hsl(var(--chart-1))',
     'hsl(var(--chart-2))',
     'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
+    'hsl(200, 82%, 52%)',
+    'hsl(25, 82%, 52%)',
     'hsl(220, 82%, 52%)',
     'hsl(280, 82%, 52%)',
     'hsl(100, 82%, 52%)',
@@ -284,7 +284,7 @@ export default function ReportsPage() {
                <ChartContainer config={monthlyComparisonConfig} className="h-[400px] w-full">
                 <BarChart data={monthlyComparisonData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid vertical={false} />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0,3)} />
                   <YAxis tickFormatter={(value) => `₹${Number(value) / 1000}k`} />
                   <ChartTooltip content={<ChartTooltipContent formatter={(value) => Number(value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} />} />
                   <Bar dataKey="total" radius={4}>
@@ -315,7 +315,7 @@ export default function ReportsPage() {
                                 tickLine={false}
                                 tickMargin={10}
                                 axisLine={false}
-                                tickFormatter={(value) => value}
+                                tickFormatter={(value) => value.slice(0,3)}
                             />
                             <YAxis 
                               tickFormatter={(value) => `₹${Number(value) / 1000}k`}
