@@ -6,14 +6,14 @@ export default function CrossoverStrategyPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Moving Average Crossover Strategy
+        Personalized Stock Analyser
       </h1>
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
             src="https://invesstrategy.streamlit.app/?embed=true"
             className="w-full h-full border-0"
-            title="Moving average crossover strategy"
+            title="Personalized Stock Analyser"
           ></iframe>
         </CardContent>
       </Card>

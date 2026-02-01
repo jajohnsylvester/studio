@@ -42,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/search', label: 'Search', icon: Search },
     { href: '/personal-perplexity', label: 'Personal Perplexity', icon: BrainCircuit },
     { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
-    { href: '/crossover-strategy', label: 'Crossover Strategy', icon: LineChart },
+    { href: '/crossover-strategy', label: 'Personalized Stock Analyser', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
     { href: '/spreadsheet', label: 'StockMarketNotes Google sheet', icon: FileSpreadsheet },
     { href: '/notes', label: 'Notes', icon: FileText },
