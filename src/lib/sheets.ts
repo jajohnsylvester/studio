@@ -71,7 +71,7 @@ async function ensureSheetExists(sheets: any, sheetName: string, headers: string
 
 function getSheetName(date: Date): string {
     const year = getYear(date);
-    if (year < 2026) {
+    if (year < 2025) {
         return `Transactions-${year}`;
     }
     const monthName = format(date, 'MMMM');
@@ -123,7 +123,7 @@ function parseExpenseRows(rows: any[][] | null | undefined): Expense[] {
 export async function getExpenses(year: number): Promise<Expense[]> {
   const sheets = getSheets();
 
-  if (year < 2026) {
+  if (year < 2025) {
     try {
         const range = `Transactions-${year}`;
         await ensureSheetExists(sheets, range, ['id', 'date', 'description', 'category', 'amount', 'paid']);
@@ -144,7 +144,7 @@ export async function getExpenses(year: number): Promise<Expense[]> {
         return [];
     }
   } else {
-    // For 2026 and after, fetch from all 12 monthly sheets
+    // For 2025 and after, fetch from all 12 monthly sheets
     const promises = months.map(async (month) => {
         const range = `Transactions-${year}-${month}`;
         try {
