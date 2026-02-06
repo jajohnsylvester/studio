@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -29,6 +28,7 @@ import {
   FileSpreadsheet,
   FileText,
   LayoutGrid,
+  GanttChartSquare,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -47,6 +47,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/spreadsheet', label: 'StockMarketNotes Google sheet', icon: FileSpreadsheet },
     { href: '/notes', label: 'Notes', icon: FileText },
     { href: '/appsheet', label: 'AppSheet', icon: LayoutGrid },
+    { href: '/stocknotes', label: 'StockNotes', icon: GanttChartSquare },
   ];
 
   return (
