@@ -29,6 +29,7 @@ import {
   FileText,
   LayoutGrid,
   GanttChartSquare,
+  Wand2,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/notes', label: 'Notes', icon: FileText },
     { href: '/appsheet', label: 'AppSheet', icon: LayoutGrid },
     { href: '/stocknotes', label: 'StockNotes', icon: GanttChartSquare },
+    { href: '/magic-formula', label: 'Magic formula', icon: Wand2 },
   ];
 
   return (
