@@ -575,4 +575,40 @@ export async function searchAllExpenses(query: string): Promise<Omit<Expense, 'i
   }
 }
 
-    
+
+export async function getRawSheetData(spreadsheetId: string, range: string): Promise<string[][]> {
+    try {
+        const sheets = getSheets();
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: spreadsheetId,
+            range: range,
+        });
+        return response.data.values || [];
+    } catch (error: any) {
+        console.error(`Error fetching raw sheet data from ${spreadsheetId} for range ${range}:`, error);
+        if (error.message && error.message.includes('permission')) {
+             throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+        }
+        throw new Error('Failed to fetch data from Google Sheet.');
+    }
+}
+
+export async function updateRawSheetData(spreadsheetId: string, range: string, values: string[][]): Promise<void> {
+    try {
+        const sheets = getSheets();
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: spreadsheetId,
+            range: range,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: values,
+            },
+        });
+    } catch (error: any) {
+        console.error(`Error updating raw sheet data in ${spreadsheetId} for range ${range}:`, error);
+         if (error.message && error.message.includes('permission')) {
+             throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+        }
+        throw new Error('Failed to update data in Google Sheet.');
+    }
+}

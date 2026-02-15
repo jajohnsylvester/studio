@@ -26,6 +26,10 @@ import {
   TrendingUp,
   LineChart,
   Crosshair,
+  FileSpreadsheet,
+  Wand2,
+  FileText,
+  TableProperties,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +45,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
     { href: '/crossover-strategy', label: 'Personalized Stock Analyser', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
+    { href: '/spreadsheet', label: 'StockMarketNotes', icon: FileSpreadsheet },
+    { href: '/appsheet', label: 'AppSheet', icon: TableProperties },
+    { href: '/stocknotes', label: 'StockNotes', icon: FileText },
+    { href: '/magic-formula', label: 'Magic formula', icon: Wand2 },
   ];
 
   return (
