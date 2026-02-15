@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Configuration for the sheet
 const SPREADSHEET_ID = '18sADTBE7eRsSC1NtPoihN3eg5MhW_nKZv09AaOztnz8';
-const PAGE_TITLE = 'Magic formula';
+const PAGE_TITLE = 'Magic formula Sheet';
 
 export default function MagicFormulaPage() {
   const [gridData, setGridData] = useState<string[][]>([]);

@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Configuration for the sheet
 const SPREADSHEET_ID = '1hHsQpI-dOkeX8gm8thtns51bpz3gJNHK1iK4AoopH6w';
-const PAGE_TITLE = 'AppSheet';
+const PAGE_TITLE = 'AppSheet Sheet';
 
 export default function AppSheetPage() {
   const [gridData, setGridData] = useState<string[][]>([]);

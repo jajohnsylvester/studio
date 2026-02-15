@@ -6,14 +6,14 @@ export default function AlphaAdvantagePage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
-        StockPrice Alpha Advantage API
+        Alpha Advantage App
       </h1>
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
             src="https://rtstock.streamlit.app/?embed=true"
             className="w-full h-full border-0"
-            title="StockPrice Alpha Advantage API"
+            title="Alpha Advantage App"
           ></iframe>
         </CardContent>
       </Card>

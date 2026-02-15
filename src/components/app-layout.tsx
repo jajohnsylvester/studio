@@ -41,15 +41,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/categories', label: 'Categories', icon: Shapes },
     { href: '/reports', label: 'Reports', icon: PieChart },
     { href: '/search', label: 'Search', icon: Search },
-    { href: '/personal-perplexity', label: 'Personal Perplexity', icon: BrainCircuit },
-    { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
-    { href: '/crossover-strategy', label: 'Personalized Stock Analyser', icon: LineChart },
-    { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
+    { href: '/personal-perplexity', label: 'Personal Perplexity App', icon: BrainCircuit },
+    { href: '/stock-predictor', label: 'Stock Predictor App', icon: TrendingUp },
+    { href: '/crossover-strategy', label: 'Personalized Stock Analyser App', icon: LineChart },
+    { href: '/alpha-advantage', label: 'Alpha Advantage App', icon: Crosshair },
     { href: '/spreadsheet', label: 'StockMarketPortfolio sheet', icon: FileSpreadsheet },
     { href: '/notes', label: 'Notes', icon: FileText },
-    { href: '/appsheet', label: 'AppSheet', icon: TableProperties },
-    { href: '/stocknotes', label: 'StockNotes', icon: FileText },
-    { href: '/magic-formula', label: 'Magic formula', icon: Wand2 },
+    { href: '/appsheet', label: 'AppSheet Sheet', icon: TableProperties },
+    { href: '/stocknotes', label: 'StockNotes Sheet', icon: FileText },
+    { href: '/magic-formula', label: 'Magic formula Sheet', icon: Wand2 },
   ];
 
   return (

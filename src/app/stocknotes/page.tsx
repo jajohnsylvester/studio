@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Configuration for the sheet
 const SPREADSHEET_ID = '1nmKjmmoFOwkB4qHg1TBYqQ959AVCHiPJOdXtEhjNT24';
-const PAGE_TITLE = 'StockNotes';
+const PAGE_TITLE = 'StockNotes Sheet';
 
 export default function StockNotesPage() {
   const [gridData, setGridData] = useState<string[][]>([]);
