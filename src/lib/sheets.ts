@@ -575,6 +575,33 @@ export async function searchAllExpenses(query: string): Promise<Omit<Expense, 'i
   }
 }
 
+export async function getFirstSheetName(spreadsheetId: string): Promise<string> {
+    try {
+        const sheets = getSheets();
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: spreadsheetId,
+            fields: 'sheets(properties.title)', // Only fetch sheet titles
+        });
+        const firstSheet = response.data.sheets?.[0];
+        if (!firstSheet || !firstSheet.properties?.title) {
+            throw new Error('Spreadsheet contains no sheets.');
+        }
+        return firstSheet.properties.title;
+    } catch (error: any) {
+        console.error(`Error fetching first sheet name from ${spreadsheetId}:`, error.message);
+        if (error.message) {
+            if (error.message.includes('permission')) {
+                 throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email.');
+            }
+             if (error.message.includes('not found')) {
+                 throw new Error(`The spreadsheet with ID "${spreadsheetId}" was not found. Please check the ID.`);
+            }
+            throw new Error(error.message);
+        }
+        throw new Error('An unknown error occurred while fetching the sheet name.');
+    }
+}
+
 
 export async function getRawSheetData(spreadsheetId: string, range: string): Promise<string[][]> {
     try {

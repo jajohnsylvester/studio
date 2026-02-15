@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getRawSheetData, updateRawSheetData } from '@/lib/sheets';
+import { getRawSheetData, updateRawSheetData, getFirstSheetName } from '@/lib/sheets';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -12,19 +13,21 @@ import { useToast } from '@/hooks/use-toast';
 // Configuration for the sheet
 const SPREADSHEET_ID = '1nmKjmmoFOwkB4qHg1TBYqQ959AVCHiPJOdXtEhjNT24';
 const PAGE_TITLE = 'StockNotes';
-const SHEET_NAME = 'Sheet1'; // The name of the sheet (tab) within the spreadsheet
 
 export default function StockNotesPage() {
   const [gridData, setGridData] = useState<string[][]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const [sheetName, setSheetName] = useState<string | null>(null);
   
-  const sheetRange = `${SHEET_NAME}!A1:Z100`; // Fetch a larger range to start with
-
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const dynamicSheetName = await getFirstSheetName(SPREADSHEET_ID);
+      setSheetName(dynamicSheetName);
+
+      const sheetRange = `${dynamicSheetName}!A1:Z100`;
       const data = await getRawSheetData(SPREADSHEET_ID, sheetRange);
       
       const numRows = Math.max(data.length, 20); // ensure at least 20 rows
@@ -46,7 +49,7 @@ export default function StockNotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, sheetRange]);
+  }, [toast]);
 
   useEffect(() => {
     fetchData();
@@ -59,6 +62,11 @@ export default function StockNotesPage() {
   };
 
   const handleSave = async () => {
+    if (!sheetName) {
+        toast({ variant: 'destructive', title: 'Cannot Save', description: 'Sheet name is not available.' });
+        return;
+    }
+
     setIsSaving(true);
     let maxRow = -1;
     let maxCol = -1;
@@ -72,7 +80,7 @@ export default function StockNotesPage() {
     });
 
     if (maxRow === -1 || maxCol === -1) {
-        const saveRange = `${SHEET_NAME}!A1`;
+        const saveRange = `${sheetName}!A1`;
          try {
             await updateRawSheetData(SPREADSHEET_ID, saveRange, [['']]); // Clear the sheet
             toast({ title: 'Sheet Cleared', description: 'Your changes have been saved.' });
@@ -86,7 +94,7 @@ export default function StockNotesPage() {
     }
     
     const dataToSave = gridData.slice(0, maxRow + 1).map(row => row.slice(0, maxCol + 1));
-    const saveRange = `${SHEET_NAME}!A1`;
+    const saveRange = `${sheetName}!A1`;
 
     try {
       await updateRawSheetData(SPREADSHEET_ID, saveRange, dataToSave);
