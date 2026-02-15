@@ -11,7 +11,7 @@ export default function MagicFormulaPage() {
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
-            src="https://docs.google.com/spreadsheets/d/18sADTBE7eRsSC1NtPoihN3eg5MhW_nKZv09AaOztnz8/edit?usp=sharing&rm=minimal"
+            src="https://docs.google.com/spreadsheets/d/18sADTBE7eRsSC1NtPoihN3eg5MhW_nKZv09AaOztnz8/edit?usp=sharing"
             className="w-full h-full border-0"
             title="Magic formula"
           ></iframe>

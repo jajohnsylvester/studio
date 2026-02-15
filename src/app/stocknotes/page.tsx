@@ -11,7 +11,7 @@ export default function StockNotesPage() {
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
-            src="https://docs.google.com/spreadsheets/d/1nmKjmmoFOwkB4qHg1TBYqQ959AVCHiPJOdXtEhjNT24/edit?usp=sharing&rm=minimal"
+            src="https://docs.google.com/spreadsheets/d/1nmKjmmoFOwkB4qHg1TBYqQ959AVCHiPJOdXtEhjNT24/edit?usp=sharing"
             className="w-full h-full border-0"
             title="StockNotes"
           ></iframe>

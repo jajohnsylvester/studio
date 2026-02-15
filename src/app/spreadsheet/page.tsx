@@ -11,7 +11,7 @@ export default function SpreadsheetPage() {
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
-            src="https://docs.google.com/spreadsheets/d/1KjNfd9nu_DjyKSaMcGJyMo6MQvk5qma9b92hI_BdL6Q/edit?usp=sharing&rm=minimal"
+            src="https://docs.google.com/spreadsheets/d/1KjNfd9nu_DjyKSaMcGJyMo6MQvk5qma9b92hI_BdL6Q/edit?usp=sharing"
             className="w-full h-full border-0"
             title="StockMarketNotes Google sheet"
           ></iframe>

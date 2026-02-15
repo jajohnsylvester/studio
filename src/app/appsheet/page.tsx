@@ -11,7 +11,7 @@ export default function AppSheetPage() {
       <Card className="w-full h-[80vh]">
         <CardContent className="p-0 h-full">
           <iframe
-            src="https://docs.google.com/spreadsheets/d/1hHsQpI-dOkeX8gm8thtns51bpz3gJNHK1iK4AoopH6w/edit?usp=sharing&rm=minimal"
+            src="https://docs.google.com/spreadsheets/d/1hHsQpI-dOkeX8gm8thtns51bpz3gJNHK1iK4AoopH6w/edit?usp=sharing"
             className="w-full h-full border-0"
             title="AppSheet"
           ></iframe>
