@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { google } from 'googleapis';
@@ -575,20 +576,17 @@ export async function searchAllExpenses(query: string): Promise<Omit<Expense, 'i
   }
 }
 
-export async function getFirstSheetName(spreadsheetId: string): Promise<string> {
+export async function getAllSheetNames(spreadsheetId: string): Promise<string[]> {
     try {
         const sheets = getSheets();
         const response = await sheets.spreadsheets.get({
             spreadsheetId: spreadsheetId,
             fields: 'sheets(properties.title)', // Only fetch sheet titles
         });
-        const firstSheet = response.data.sheets?.[0];
-        if (!firstSheet || !firstSheet.properties?.title) {
-            throw new Error('Spreadsheet contains no sheets.');
-        }
-        return firstSheet.properties.title;
+        const sheetTitles = response.data.sheets?.map(s => s.properties?.title).filter((t): t is string => !!t) || [];
+        return sheetTitles;
     } catch (error: any) {
-        console.error(`Error fetching first sheet name from ${spreadsheetId}:`, error.message);
+        console.error(`Error fetching all sheet names from ${spreadsheetId}:`, error.message);
         if (error.message) {
             if (error.message.includes('permission')) {
                  throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email.');
@@ -598,7 +596,21 @@ export async function getFirstSheetName(spreadsheetId: string): Promise<string> 
             }
             throw new Error(error.message);
         }
-        throw new Error('An unknown error occurred while fetching the sheet name.');
+        throw new Error('An unknown error occurred while fetching the sheet names.');
+    }
+}
+
+
+export async function getFirstSheetName(spreadsheetId: string): Promise<string> {
+    try {
+        const sheetNames = await getAllSheetNames(spreadsheetId);
+        if (sheetNames.length === 0) {
+            throw new Error('Spreadsheet contains no sheets.');
+        }
+        return sheetNames[0];
+    } catch (error: any) {
+        // Re-throw the specific error from getAllSheetNames
+        throw error;
     }
 }
 

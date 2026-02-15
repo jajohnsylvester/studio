@@ -1,13 +1,15 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getRawSheetData, updateRawSheetData, getFirstSheetName } from '@/lib/sheets';
+import { getRawSheetData, updateRawSheetData, getAllSheetNames } from '@/lib/sheets';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableRow, TableHead, TableHeader } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Configuration for the sheet
 const SPREADSHEET_ID = '1hHsQpI-dOkeX8gm8thtns51bpz3gJNHK1iK4AoopH6w';
@@ -15,18 +17,46 @@ const PAGE_TITLE = 'AppSheet';
 
 export default function AppSheetPage() {
   const [gridData, setGridData] = useState<string[][]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [areSheetsLoading, setAreSheetsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
-  const [sheetName, setSheetName] = useState<string | null>(null);
+  const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [activeSheetName, setActiveSheetName] = useState<string>('');
+
+  useEffect(() => {
+    async function fetchSheetNames() {
+      setAreSheetsLoading(true);
+      try {
+        const names = await getAllSheetNames(SPREADSHEET_ID);
+        if (names && names.length > 0) {
+          setSheetNames(names);
+          setActiveSheetName(names[0]);
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'No Sheets Found',
+            description: 'The spreadsheet is empty or could not be accessed.',
+          });
+        }
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load sheet tabs',
+          description: error.message,
+        });
+      } finally {
+        setAreSheetsLoading(false);
+      }
+    }
+    fetchSheetNames();
+  }, [toast]);
 
   const fetchData = useCallback(async () => {
-    setIsLoading(true);
+    if (!activeSheetName) return;
+    setIsDataLoading(true);
     try {
-      const dynamicSheetName = await getFirstSheetName(SPREADSHEET_ID);
-      setSheetName(dynamicSheetName);
-      
-      const sheetRange = `${dynamicSheetName}!A1:Z100`;
+      const sheetRange = `${activeSheetName}!A1:Z100`;
       const data = await getRawSheetData(SPREADSHEET_ID, sheetRange);
       
       const numRows = Math.max(data.length, 20); // ensure at least 20 rows
@@ -46,13 +76,15 @@ export default function AppSheetPage() {
       // Initialize with an empty grid on error
       setGridData(Array.from({ length: 20 }, () => Array.from({ length: 10 }, () => '')));
     } finally {
-      setIsLoading(false);
+      setIsDataLoading(false);
     }
-  }, [toast]);
+  }, [toast, activeSheetName]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if(activeSheetName) {
+      fetchData();
+    }
+  }, [fetchData, activeSheetName]);
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
     const newData = gridData.map(row => [...row]);
@@ -61,8 +93,8 @@ export default function AppSheetPage() {
   };
 
   const handleSave = async () => {
-    if (!sheetName) {
-        toast({ variant: 'destructive', title: 'Cannot Save', description: 'Sheet name is not available.' });
+    if (!activeSheetName) {
+        toast({ variant: 'destructive', title: 'Cannot Save', description: 'No active sheet selected.' });
         return;
     }
     
@@ -79,7 +111,7 @@ export default function AppSheetPage() {
     });
 
     if (maxRow === -1 || maxCol === -1) {
-        const saveRange = `${sheetName}!A1`;
+        const saveRange = `${activeSheetName}!A1`;
          try {
             await updateRawSheetData(SPREADSHEET_ID, saveRange, [['']]); // Clear the sheet
             toast({ title: 'Sheet Cleared', description: 'Your changes have been saved.' });
@@ -93,7 +125,7 @@ export default function AppSheetPage() {
     }
     
     const dataToSave = gridData.slice(0, maxRow + 1).map(row => row.slice(0, maxCol + 1));
-    const saveRange = `${sheetName}!A1`;
+    const saveRange = `${activeSheetName}!A1`;
 
     try {
       await updateRawSheetData(SPREADSHEET_ID, saveRange, dataToSave);
@@ -122,7 +154,9 @@ export default function AppSheetPage() {
       setGridData(gridData.map(row => [...row, '']));
   }
 
-  if (isLoading) {
+  const isLoading = areSheetsLoading || isDataLoading;
+
+  if (isLoading && sheetNames.length === 0) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -150,34 +184,50 @@ export default function AppSheetPage() {
             </div>
         </CardHeader>
         <CardContent>
-            <div className="overflow-x-auto border rounded-lg">
-                <Table className="min-w-full">
-                    <TableHeader>
-                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            {gridData[0]?.map((_, colIndex) => (
-                                <TableHead key={colIndex} className="p-2 text-center font-semibold">
-                                    {String.fromCharCode(65 + colIndex)}
-                                </TableHead>
-                            ))}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {gridData.map((row, rowIndex) => (
-                            <TableRow key={rowIndex}>
-                                {row.map((cell, colIndex) => (
-                                    <TableCell key={colIndex} className="p-0 border-r last:border-r-0">
-                                        <Input
-                                            value={cell}
-                                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                            className="w-full h-10 rounded-none border-0 border-t focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary"
-                                        />
-                                    </TableCell>
-                                ))}
-                            </TableRow>
+            {sheetNames.length > 1 && (
+                <Tabs value={activeSheetName} onValueChange={setActiveSheetName} className="mb-4">
+                    <TabsList>
+                        {sheetNames.map((name) => (
+                            <TabsTrigger key={name} value={name}>{name}</TabsTrigger>
                         ))}
-                    </TableBody>
-                </Table>
-            </div>
+                    </TabsList>
+                </Tabs>
+            )}
+
+            {isDataLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto border rounded-lg">
+                  <Table className="min-w-full">
+                      <TableHeader>
+                          <TableRow className="bg-muted/50 hover:bg-muted/50">
+                              {gridData[0]?.map((_, colIndex) => (
+                                  <TableHead key={colIndex} className="p-2 text-center font-semibold">
+                                      {String.fromCharCode(65 + colIndex)}
+                                  </TableHead>
+                              ))}
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {gridData.map((row, rowIndex) => (
+                              <TableRow key={rowIndex}>
+                                  {row.map((cell, colIndex) => (
+                                      <TableCell key={colIndex} className="p-0 border-r last:border-r-0">
+                                          <Input
+                                              value={cell}
+                                              onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                              className="w-full h-10 rounded-none border-0 border-t focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary"
+                                          />
+                                      </TableCell>
+                                  ))}
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </div>
+            )}
         </CardContent>
        </Card>
     </div>
