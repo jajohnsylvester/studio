@@ -200,7 +200,7 @@ export default function StockNotesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
-                  <Table className="min-w-full">
+                  <Table className="w-auto min-w-full">
                       <TableHeader>
                           <TableRow className="bg-muted/50 hover:bg-muted/50">
                               {gridData[0]?.map((_, colIndex) => (
