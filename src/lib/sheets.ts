@@ -25,7 +25,10 @@ const getAuth = () => {
       client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
       private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    scopes: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/documents.readonly'
+    ],
   });
   return auth;
 };
@@ -661,5 +664,30 @@ export async function updateRawSheetData(spreadsheetId: string, range: string, v
             throw new Error(error.message);
         }
         throw new Error('An unknown error occurred while updating the Google Sheet.');
+    }
+}
+
+export async function getGoogleDocContent(documentId: string): Promise<any> {
+    try {
+        const auth = getAuth();
+        const docs = google.docs({ version: 'v1', auth });
+
+        const response = await docs.documents.get({
+            documentId: documentId,
+        });
+
+        return response.data;
+    } catch (error: any) {
+        console.error(`Error fetching Google Doc content for document ${documentId}:`, error.message);
+        if (error.message) {
+            if (error.message.includes('permission')) {
+                 throw new Error('Permission denied. Please ensure the Google Doc is shared with the service account email with at least "Viewer" rights.');
+            }
+             if (error.message.includes('not found')) {
+                 throw new Error(`The document with ID "${documentId}" was not found. Please check the ID.`);
+            }
+            throw new Error(error.message);
+        }
+        throw new Error('An unknown error occurred while fetching the Google Doc.');
     }
 }
