@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -46,6 +45,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/crossover-strategy', label: 'Personalized Stock Analyser', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
     { href: '/spreadsheet', label: 'StockMarketNotes', icon: FileSpreadsheet },
+    { href: '/notes', label: 'Notes', icon: FileText },
     { href: '/appsheet', label: 'AppSheet', icon: TableProperties },
     { href: '/stocknotes', label: 'StockNotes', icon: FileText },
     { href: '/magic-formula', label: 'Magic formula', icon: Wand2 },
