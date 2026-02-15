@@ -1,3 +1,4 @@
+
 'use server';
 
 import { google } from 'googleapis';
@@ -584,11 +585,17 @@ export async function getRawSheetData(spreadsheetId: string, range: string): Pro
         });
         return response.data.values || [];
     } catch (error: any) {
-        console.error(`Error fetching raw sheet data from ${spreadsheetId} for range ${range}:`, error);
-        if (error.message && error.message.includes('permission')) {
-             throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+        console.error(`Error fetching raw sheet data from ${spreadsheetId} for range ${range}:`, error.message);
+        if (error.message) {
+            if (error.message.includes('permission')) {
+                 throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+            }
+             if (error.message.includes('Unable to parse range')) {
+                 throw new Error(`The sheet tab (e.g., "Sheet1") was not found in the spreadsheet. Please check the sheet name.`);
+            }
+            throw new Error(error.message);
         }
-        throw new Error('Failed to fetch data from Google Sheet.');
+        throw new Error('An unknown error occurred while fetching data from Google Sheet.');
     }
 }
 
@@ -604,10 +611,16 @@ export async function updateRawSheetData(spreadsheetId: string, range: string, v
             },
         });
     } catch (error: any) {
-        console.error(`Error updating raw sheet data in ${spreadsheetId} for range ${range}:`, error);
-         if (error.message && error.message.includes('permission')) {
-             throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+        console.error(`Error updating raw sheet data in ${spreadsheetId} for range ${range}:`, error.message);
+        if (error.message) {
+            if (error.message.includes('permission')) {
+                 throw new Error('Permission denied. Please ensure the Google Sheet is shared with the service account email with "Editor" rights.');
+            }
+             if (error.message.includes('Unable to parse range')) {
+                 throw new Error(`The sheet tab (e.g., "Sheet1") was not found in the spreadsheet. Please check the sheet name.`);
+            }
+            throw new Error(error.message);
         }
-        throw new Error('Failed to update data in Google Sheet.');
+        throw new Error('An unknown error occurred while updating the Google Sheet.');
     }
 }
