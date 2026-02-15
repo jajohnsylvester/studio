@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // Configuration for the sheet
 const SPREADSHEET_ID = '1KjNfd9nu_DjyKSaMcGJyMo6MQvk5qma9b92hI_BdL6Q';
-const PAGE_TITLE = 'StockMarketNotes';
+const PAGE_TITLE = 'StockMarketPortfolio sheet';
 const SHEET_NAME = 'Sheet1'; // The name of the sheet (tab) within the spreadsheet
 
 export default function SpreadsheetPage() {
