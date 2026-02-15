@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -25,11 +26,6 @@ import {
   TrendingUp,
   LineChart,
   Crosshair,
-  FileSpreadsheet,
-  FileText,
-  LayoutGrid,
-  GanttChartSquare,
-  Wand2,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -45,11 +41,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: '/stock-predictor', label: 'Stock Predictor', icon: TrendingUp },
     { href: '/crossover-strategy', label: 'Personalized Stock Analyser', icon: LineChart },
     { href: '/alpha-advantage', label: 'Alpha Advantage', icon: Crosshair },
-    { href: '/spreadsheet', label: 'StockMarketNotes Google sheet', icon: FileSpreadsheet },
-    { href: '/notes', label: 'Notes', icon: FileText },
-    { href: '/appsheet', label: 'AppSheet', icon: LayoutGrid },
-    { href: '/stocknotes', label: 'StockNotes', icon: GanttChartSquare },
-    { href: '/magic-formula', label: 'Magic formula', icon: Wand2 },
   ];
 
   return (
