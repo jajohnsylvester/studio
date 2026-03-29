@@ -268,7 +268,6 @@ export default function DashboardPage() {
 
   const dailySpendingData = useMemo(() => {
     const dailyTotals = filteredExpenses
-      .filter(e => e.category !== 'Credit Card')
       .reduce((acc, expense) => {
         const day = getDate(toZonedTime(new Date(expense.date), TIME_ZONE));
         if (!acc[day]) {
@@ -393,7 +392,7 @@ export default function DashboardPage() {
               <Card className="lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Daily Spending</CardTitle>
-                  <CardDescription>Daily breakdown for {month} {selectedYear} (Excludes Credit Card).</CardDescription>
+                  <CardDescription>Daily breakdown for {month} {selectedYear} (Includes Credit Card).</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {dailySpendingData.length > 0 ? (

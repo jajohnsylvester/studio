@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Expense, Budget } from '@/lib/types';
-import { ArrowDownCircle, Banknote, CreditCard, CheckCircle, Wallet } from 'lucide-react';
+import { ArrowDownCircle, Banknote, CreditCard, CheckCircle, Wallet, PlusCircle } from 'lucide-react';
 
 type DashboardSummaryProps = {
   expenses: Expense[];
@@ -18,12 +18,26 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
   const unpaidCreditCardSpent = unpaidCreditCardExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const paidCreditCardSpent = paidCreditCardExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
+  const totalMonthlySpent = totalSpentExcludingCC + unpaidCreditCardSpent + paidCreditCardSpent;
+
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const remainingBudget = totalBudget - totalSpentExcludingCC;
   const isOverBudget = remainingBudget < 0;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Monthly Spent</CardTitle>
+            <PlusCircle className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold truncate">
+              {totalMonthlySpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+            </div>
+             <p className="text-xs text-muted-foreground">All transactions included</p>
+          </CardContent>
+        </Card>
         <Card className="hover:bg-muted/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Spent (Ex-CC)</CardTitle>

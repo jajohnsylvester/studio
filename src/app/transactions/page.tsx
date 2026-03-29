@@ -133,9 +133,8 @@ export default function TransactionsPage() {
       }
       acc[date].expenses.push(expense);
       
-      // Daily total excludes Credit Card as per standard view
-      const expenseAmount = expense.category === 'Credit Card' ? 0 : expense.amount;
-      acc[date].total += expenseAmount;
+      // Daily total now includes Credit Card
+      acc[date].total += expense.amount;
       
       return acc;
     }, {} as GroupedExpenses);
@@ -372,7 +371,7 @@ export default function TransactionsPage() {
                       <div>
                           <CardTitle>Transactions</CardTitle>
                           <CardDescription>
-                              Your expenses for {selectedMonth} {selectedYear}. Daily totals exclude Credit Card transactions.
+                              Your expenses for {selectedMonth} {selectedYear}. Daily totals include all transactions.
                           </CardDescription>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-right">
