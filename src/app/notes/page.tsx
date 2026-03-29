@@ -3,7 +3,7 @@ import { getGoogleDocContent } from '@/lib/sheets';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 // TODO: Replace with your actual Google Doc ID
-const DOCUMENT_ID = 'YOUR_DOCUMENT_ID_HERE';
+const DOCUMENT_ID = 'https://docs.google.com/document/d/1PPjg0gov0Ma9Hr29yNLMCcy6dgKfx1ovYNRW4xpQ0uw/edit?usp=sharing';
 
 // A simple component to render Google Doc content
 const DocRenderer = ({ content }: { content: any }) => {

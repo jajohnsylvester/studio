@@ -133,7 +133,8 @@ export default function TransactionsPage() {
       }
       acc[date].expenses.push(expense);
       
-      const expenseAmount = expense.category === 'Credit Card' ? 0 : expense.amount;
+      // Included all categories in daily total as per user request
+      const expenseAmount = expense.amount;
       acc[date].total += expenseAmount;
       
       return acc;
@@ -152,7 +153,6 @@ export default function TransactionsPage() {
   
   const { foodCardTotal, creditCardTotal, otherTotal, paidCreditCardTotal } = useMemo(() => {
     const monthIndex = months.indexOf(selectedMonth);
-    // We calculate totals based on the month/year, but before category/search filters
     const allMonthExpenses = expenses.filter(expense => {
         const expenseDate = toZonedTime(new Date(expense.date), TIME_ZONE);
         return getMonth(expenseDate) === monthIndex && getYear(expenseDate) === selectedYear;
@@ -372,7 +372,7 @@ export default function TransactionsPage() {
                       <div>
                           <CardTitle>Transactions</CardTitle>
                           <CardDescription>
-                              Your expenses for {selectedMonth} {selectedYear}. 
+                              Your expenses for {selectedMonth} {selectedYear}. Daily totals include Credit Card transactions.
                           </CardDescription>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-right">

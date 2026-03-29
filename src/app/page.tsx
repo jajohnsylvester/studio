@@ -79,24 +79,6 @@ const CustomPieTooltip = (props: TooltipProps<ValueType, NameType>) => {
     return null;
 }
 
-const CustomBarTooltip = (props: TooltipProps<ValueType, NameType>) => {
-    const { active, payload, label } = props;
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid grid-cols-1 gap-2">
-             <span className="font-bold">
-                  Day {label}: {Number(data.value).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-             </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-};
-
-
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -118,7 +100,7 @@ export default function DashboardPage() {
       toast({
           variant: "destructive",
           title: "Failed to load data",
-          description: "Could not fetch data from Google Sheets. Make sure your environment variables are set correctly.",
+          description: "Could not fetch data from Google Sheets.",
       })
     } finally {
       setIsLoading(false);
@@ -213,7 +195,7 @@ export default function DashboardPage() {
         [
           e.id, 
           format(toZonedTime(new Date(e.date), TIME_ZONE), "yyyy-MM-dd"), 
-          `"${e.description.replace(/"/g, '""')}"`, // Handle quotes
+          `"${e.description.replace(/"/g, '""')}"`,
           e.category, 
           e.amount,
           e.category === 'Credit Card' ? (e.paid ? 'Paid' : 'Not Paid') : ''
@@ -278,7 +260,7 @@ export default function DashboardPage() {
         return {
             ...budget,
             spent,
-            progress: Math.min(progress, 100), // Cap at 100%
+            progress: Math.min(progress, 100),
             isOver: progress > 100
         };
     }).sort((a, b) => b.progress - a.progress);
@@ -286,7 +268,7 @@ export default function DashboardPage() {
 
   const dailySpendingData = useMemo(() => {
     const dailyTotals = filteredExpenses
-      .filter(e => e.category !== 'Credit Card')
+      // Removed .filter(e => e.category !== 'Credit Card') to include CC in daily totals
       .reduce((acc, expense) => {
         const day = getDate(toZonedTime(new Date(expense.date), TIME_ZONE));
         if (!acc[day]) {
@@ -411,7 +393,7 @@ export default function DashboardPage() {
               <Card className="lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Daily Spending</CardTitle>
-                  <CardDescription>Your daily expense breakdown for {month} {selectedYear}.</CardDescription>
+                  <CardDescription>Daily breakdown for {month} {selectedYear} (Includes Credit Card).</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {dailySpendingData.length > 0 ? (
