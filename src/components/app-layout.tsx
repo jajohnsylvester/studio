@@ -30,7 +30,6 @@ import {
   Wand2,
   FileText,
   TableProperties,
-  CalendarRange,
 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -39,7 +38,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/transactions', label: 'Transactions', icon: ReceiptIndianRupee },
-    { href: '/date-range', label: 'Date Range Analysis', icon: CalendarRange },
     { href: '/categories', label: 'Categories', icon: Shapes },
     { href: '/reports', label: 'Reports', icon: PieChart },
     { href: '/search', label: 'Search', icon: Search },
