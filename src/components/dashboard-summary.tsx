@@ -34,7 +34,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
+            <div className="text-2xl font-bold text-primary truncate">
               {totalMonthlySpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
              <p className="text-xs text-muted-foreground">Sum of all transactions</p>
@@ -46,7 +46,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold truncate">
               {totalSpentExcludingCC.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
              <p className="text-xs text-muted-foreground">Cash, FoodCard, etc.</p>
@@ -58,7 +58,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-2xl font-bold text-destructive truncate">
                 {unpaidCreditCardSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
             <p className="text-xs text-muted-foreground">Outstanding CC bills</p>
@@ -70,7 +70,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 truncate">
                 {paidCreditCardSpent.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
             <p className="text-xs text-muted-foreground">Cleared CC transactions</p>
@@ -84,7 +84,7 @@ export function DashboardSummary({ expenses, budgets }: DashboardSummaryProps) {
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${isOverBudget ? 'text-destructive' : ''}`}>
+            <div className={`text-2xl font-bold truncate ${isOverBudget ? 'text-destructive' : ''}`}>
                  {Math.abs(remainingBudget).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
             </div>
             <p className="text-xs text-muted-foreground">Budget vs Ex-CC spending</p>
